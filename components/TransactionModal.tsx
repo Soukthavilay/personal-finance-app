@@ -29,15 +29,17 @@ interface TransactionModalProps {
 }
 
 const CATEGORIES = {
-  income: ["Salary", "Freelance", "Investment", "Gift", "Other"],
+  income: ["Salary", "Bonus", "Other Income"],
   expense: [
     "Food",
-    "Transport",
     "Rent",
     "Shopping",
     "Utilities",
-    "Health",
     "Entertainment",
+    "Transportation",
+    "Healthcare",
+    "Education",
+    "Other Expense",
   ],
 };
 

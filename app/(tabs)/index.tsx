@@ -1,67 +1,103 @@
 import {
-    CreditCard,
-    DollarSign,
-    TrendingUp,
-    Wallet,
+  CreditCard,
+  DollarSign,
+  TrendingUp,
+  Wallet,
 } from "lucide-react-native";
 import {
-    Dimensions,
-    ScrollView,
-    Text,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { LineChart } from "react-native-chart-kit";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import * as Haptics from "expo-haptics";
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
-    RecentTransactions,
-    Transaction,
+  RecentTransactions,
+  Transaction,
 } from "@/components/RecentTransactions";
 import {
-    TransactionModal,
-    TransactionType,
+  TransactionModal,
+  TransactionType,
 } from "@/components/TransactionModal";
+import {
+  authService,
+  categoryService,
+  reportService,
+  transactionService,
+} from "@/services";
+import { getApiErrorMessage } from "@/services/apiClient";
+import { formatDateYYYYMMDD } from "@/utils/date";
 import { formatCurrency } from "@/utils/formatting";
 
 export default function HomeScreen() {
   const screenWidth = Dimensions.get("window").width;
 
-  // State Management
-  const [transactions, setTransactions] = useState<Transaction[]>([
-    {
-      id: "1",
-      category: "Food",
-      amount: 45.0,
-      date: new Date(2023, 5, 20),
-      type: "expense",
-    },
-    {
-      id: "2",
-      category: "Salary",
-      amount: 3500.0,
-      date: new Date(2023, 5, 18),
-      type: "income",
-    },
-    {
-      id: "3",
-      category: "Shopping",
-      amount: 120.5,
-      date: new Date(2023, 5, 15),
-      type: "expense",
-    },
-  ]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalType, setModalType] = useState<TransactionType>("expense");
+  const [error, setError] = useState<string>("");
+  const [userName, setUserName] = useState<string>("");
+  const [totalBalance, setTotalBalance] = useState<number>(0);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [categories, setCategories] = useState<categoryService.Category[]>([]);
+  const [categoryStats, setCategoryStats] = useState<
+    { name: string; total: string }[]
+  >([]);
 
-  // Derived State: Total Balance (Mock starting balance + transactions)
-  const startingBalance = 24562.0;
-  const totalBalance = transactions.reduce((acc, curr) => {
-    return curr.type === "income" ? acc + curr.amount : acc - curr.amount;
-  }, startingBalance);
+  const categoryIdByTypeAndName = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const c of categories) {
+      map.set(`${c.type}:${c.name.toLowerCase()}`, c.id);
+    }
+    return map;
+  }, [categories]);
+
+  const loadDashboard = useCallback(async () => {
+    setError("");
+    try {
+      const [meRes, dashboardRes, categoriesRes, transactionsRes] =
+        await Promise.all([
+          authService.me(),
+          reportService.getDashboard(),
+          categoryService.listCategories(),
+          transactionService.listTransactions({ limit: 20, offset: 0 }),
+        ]);
+
+      setUserName(meRes.username || "");
+      setTotalBalance(Number(dashboardRes.balance) || 0);
+      setCategoryStats(dashboardRes.categoryStats || []);
+      setCategories(categoriesRes);
+
+      const uiTx: Transaction[] = (transactionsRes || []).map((t) => {
+        const amountNum =
+          typeof t.amount === "string" ? Number(t.amount) : Number(t.amount);
+        const txType =
+          t.category_type === "income" || t.category_type === "expense"
+            ? t.category_type
+            : "expense";
+        return {
+          id: String(t.id),
+          category: t.category_name || String(t.category_id),
+          amount: Number.isFinite(amountNum) ? amountNum : 0,
+          date: new Date(t.transaction_date),
+          type: txType,
+        };
+      });
+      setTransactions(uiTx);
+    } catch (e) {
+      setError(getApiErrorMessage(e));
+    }
+  }, []);
+
+  useEffect(() => {
+    loadDashboard();
+  }, [loadDashboard, refreshKey]);
 
   // Handlers
   const handleOpenModal = (type: TransactionType) => {
@@ -70,34 +106,70 @@ export default function HomeScreen() {
     setModalVisible(true);
   };
 
-  const handleSaveTransaction = (
+  const handleSaveTransaction = async (
     amount: number,
     category: string,
     date: Date,
     type: TransactionType,
   ) => {
-    const newTransaction: Transaction = {
-      id: Math.random().toString(36).substr(2, 9),
-      category,
-      amount,
-      date,
-      type,
+    setError("");
+
+    const categoryId = categoryIdByTypeAndName.get(
+      `${type}:${category.toLowerCase()}`,
+    );
+    if (!categoryId) {
+      setError(`Category not found on backend: ${category}`);
+      return;
+    }
+
+    try {
+      await transactionService.createTransaction({
+        category_id: categoryId,
+        amount,
+        transaction_date: formatDateYYYYMMDD(date),
+        description: "",
+      });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setModalVisible(false);
+      setRefreshKey((k) => k + 1);
+    } catch (e) {
+      setError(getApiErrorMessage(e));
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
+  };
+
+  const chartData = useMemo(() => {
+    const top = (categoryStats || [])
+      .slice()
+      .sort((a, b) => Number(b.total) - Number(a.total))
+      .slice(0, 6);
+
+    if (top.length === 0) {
+      return {
+        labels: ["-"],
+        datasets: [
+          {
+            data: [0],
+            color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+            strokeWidth: 2,
+          },
+        ],
+      };
+    }
+
+    return {
+      labels: top.map((s) =>
+        s.name.length > 6 ? `${s.name.slice(0, 6)}…` : s.name,
+      ),
+      datasets: [
+        {
+          data: top.map((s) => Number(s.total) || 0),
+          color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+          strokeWidth: 2,
+        },
+      ],
     };
-
-    setTransactions((prev) => [newTransaction, ...prev]);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-  };
-
-  const chartData = {
-    labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
-    datasets: [
-      {
-        data: [20, 45, 28, 80, 99, 43],
-        color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-        strokeWidth: 2,
-      },
-    ],
-  };
+  }, [categoryStats]);
 
   const chartConfig = {
     backgroundGradientFrom: "#3b82f6",
@@ -120,7 +192,7 @@ export default function HomeScreen() {
                 Welcome back
               </Text>
               <Text className="text-2xl font-bold text-gray-900 tracking-tight">
-                John Doe
+                {userName || "-"}
               </Text>
             </View>
             <View className="bg-blue-100 p-2 rounded-full">
@@ -175,6 +247,12 @@ export default function HomeScreen() {
 
         {/* Recent Transactions */}
         <RecentTransactions transactions={transactions} />
+
+        {!!error && (
+          <View className="mx-6 mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl">
+            <Text className="text-red-700 text-sm font-medium">{error}</Text>
+          </View>
+        )}
 
         {/* Chart Section */}
         <View className="mx-6 mb-10">
