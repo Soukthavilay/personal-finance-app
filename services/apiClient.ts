@@ -1,5 +1,6 @@
 import axios, { AxiosError } from "axios";
-import { getAuthToken } from "./tokenStore";
+import { emitUnauthorized } from "./authEvents";
+import { clearAuthToken, getAuthToken } from "./tokenStore";
 
 const rawBaseUrl =
   process.env.EXPO_PUBLIC_API_BASE_URL || "http://localhost:3000";
@@ -23,6 +24,20 @@ apiClient.interceptors.request.use(async (config: any) => {
   }
   return config;
 });
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error: unknown) => {
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status;
+      if (status === 401) {
+        await clearAuthToken();
+        emitUnauthorized();
+      }
+    }
+    return Promise.reject(error);
+  },
+);
 
 export function getApiErrorMessage(error: unknown): string {
   if (!axios.isAxiosError(error)) return "Unknown error";

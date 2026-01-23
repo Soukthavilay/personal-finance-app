@@ -33,6 +33,17 @@ export default function SettingsScreen() {
 
   const [user, setUser] = React.useState<AuthUser | null>(null);
 
+  const [categories, setCategories] = React.useState<
+    categoryService.Category[]
+  >([]);
+  const [categoryName, setCategoryName] = React.useState("");
+  const [categoryType, setCategoryType] = React.useState<"income" | "expense">(
+    "expense",
+  );
+  const [editingCategoryId, setEditingCategoryId] = React.useState<
+    number | null
+  >(null);
+
   const [budgetPeriod, setBudgetPeriod] = React.useState("2026-01");
   const [budgetAmount, setBudgetAmount] = React.useState("1000");
 
@@ -78,6 +89,12 @@ export default function SettingsScreen() {
   const loadBudgets = async () => {
     const rows = await budgetService.listBudgets({ period: budgetPeriod });
     setBudgets(rows);
+    return rows;
+  };
+
+  const loadCategories = async () => {
+    const rows = await categoryService.listCategories();
+    setCategories(rows);
     return rows;
   };
 
@@ -328,6 +345,177 @@ export default function SettingsScreen() {
                       <Text className="text-sm font-bold text-gray-900">
                         {formatCurrency(Number(b.amount) || 0)}
                       </Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          </View>
+
+          <View className="bg-white rounded-2xl border border-gray-100 p-4 gap-3">
+            <View className="flex-row items-center justify-between">
+              <Text className="text-sm font-semibold text-gray-900">
+                Categories
+              </Text>
+              <TouchableOpacity
+                disabled={loading}
+                onPress={() => run(loadCategories)}
+                className="px-3 py-2 rounded-xl bg-gray-100"
+                style={{ opacity: loading ? 0.6 : 1 }}
+              >
+                <Text className="text-gray-800 font-semibold text-xs">
+                  Load
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View className="gap-2">
+              <Text className="text-xs font-medium text-gray-600">Name</Text>
+              <TextInput
+                value={categoryName}
+                onChangeText={setCategoryName}
+                autoCapitalize="none"
+                className="border border-gray-200 rounded-xl px-4 py-3"
+                placeholder="e.g. Coffee"
+              />
+            </View>
+
+            <View className="gap-2">
+              <Text className="text-xs font-medium text-gray-600">Type</Text>
+              <View className="flex-row gap-3">
+                <TouchableOpacity
+                  disabled={loading}
+                  onPress={() => setCategoryType("expense")}
+                  className={`flex-1 rounded-xl px-4 py-3 ${
+                    categoryType === "expense" ? "bg-gray-900" : "bg-gray-100"
+                  }`}
+                  style={{ opacity: loading ? 0.6 : 1 }}
+                >
+                  <Text
+                    className={`text-center font-semibold ${
+                      categoryType === "expense"
+                        ? "text-white"
+                        : "text-gray-900"
+                    }`}
+                  >
+                    Expense
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  disabled={loading}
+                  onPress={() => setCategoryType("income")}
+                  className={`flex-1 rounded-xl px-4 py-3 ${
+                    categoryType === "income" ? "bg-gray-900" : "bg-gray-100"
+                  }`}
+                  style={{ opacity: loading ? 0.6 : 1 }}
+                >
+                  <Text
+                    className={`text-center font-semibold ${
+                      categoryType === "income" ? "text-white" : "text-gray-900"
+                    }`}
+                  >
+                    Income
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View className="flex-row gap-3">
+              <TouchableOpacity
+                disabled={loading}
+                onPress={() =>
+                  run(async () => {
+                    if (!categoryName.trim()) throw new Error("Missing name");
+                    const created = await categoryService.createCategory({
+                      name: categoryName.trim(),
+                      type: categoryType,
+                    });
+                    setCategoryName("");
+                    await loadCategories();
+                    return created;
+                  })
+                }
+                className="flex-1 bg-blue-600 rounded-xl px-4 py-3"
+                style={{ opacity: loading ? 0.6 : 1 }}
+              >
+                <Text className="text-white text-center font-semibold">
+                  Create
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                disabled={loading}
+                onPress={() =>
+                  run(async () => {
+                    if (!editingCategoryId) throw new Error("Pick a category");
+                    if (!categoryName.trim()) throw new Error("Missing name");
+                    await categoryService.updateCategory(editingCategoryId, {
+                      name: categoryName.trim(),
+                      type: categoryType,
+                    });
+                    setEditingCategoryId(null);
+                    setCategoryName("");
+                    await loadCategories();
+                    return { message: "Updated" };
+                  })
+                }
+                className="flex-1 bg-gray-900 rounded-xl px-4 py-3"
+                style={{ opacity: loading ? 0.6 : 1 }}
+              >
+                <Text className="text-white text-center font-semibold">
+                  Update
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View className="mt-1">
+              {categories.length === 0 ? (
+                <Text className="text-xs text-gray-500">
+                  No categories loaded.
+                </Text>
+              ) : (
+                <View className="gap-2">
+                  {categories.slice(0, 8).map((c) => (
+                    <View
+                      key={String(c.id)}
+                      className="flex-row items-center justify-between bg-gray-50 border border-gray-100 rounded-xl px-4 py-3"
+                    >
+                      <TouchableOpacity
+                        disabled={loading}
+                        onPress={() => {
+                          setEditingCategoryId(c.id);
+                          setCategoryName(c.name);
+                          setCategoryType(c.type);
+                        }}
+                        style={{ opacity: loading ? 0.6 : 1 }}
+                      >
+                        <Text className="text-sm font-semibold text-gray-900">
+                          {c.name}
+                        </Text>
+                        <Text className="text-xs text-gray-500">
+                          {c.type} • id {c.id}
+                        </Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        disabled={loading}
+                        onPress={() =>
+                          run(async () => {
+                            await categoryService.deleteCategory(c.id);
+                            if (editingCategoryId === c.id) {
+                              setEditingCategoryId(null);
+                              setCategoryName("");
+                            }
+                            await loadCategories();
+                            return { message: "Deleted" };
+                          })
+                        }
+                        className="bg-red-600 rounded-xl px-3 py-2"
+                        style={{ opacity: loading ? 0.6 : 1 }}
+                      >
+                        <Text className="text-white font-semibold text-xs">
+                          Delete
+                        </Text>
+                      </TouchableOpacity>
                     </View>
                   ))}
                 </View>
