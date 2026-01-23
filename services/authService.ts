@@ -46,3 +46,24 @@ export async function logout(): Promise<void> {
     await clearAuthToken();
   }
 }
+
+export type ForgotPasswordResponse = {
+  message: string;
+  resetToken?: string;
+};
+
+export async function forgotPassword(
+  email: string,
+): Promise<ForgotPasswordResponse> {
+  const res = await apiClient.post("/auth/forgot-password", { email });
+  return res.data as ForgotPasswordResponse;
+}
+
+export async function resetPassword(input: {
+  email: string;
+  token: string;
+  newPassword: string;
+}): Promise<{ message: string }> {
+  const res = await apiClient.post("/auth/reset-password", input);
+  return res.data as { message: string };
+}

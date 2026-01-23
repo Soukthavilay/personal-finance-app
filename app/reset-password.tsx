@@ -6,20 +6,28 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { authService } from "@/services";
 import { getApiErrorMessage } from "@/services/apiClient";
 
-export default function LoginScreen() {
+export default function ResetPasswordScreen() {
   const router = useRouter();
 
   const [email, setEmail] = React.useState("");
-  const [password, setPassword] = React.useState("");
+  const [token, setToken] = React.useState("");
+  const [newPassword, setNewPassword] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string>("");
+  const [success, setSuccess] = React.useState<string>("");
 
-  const onLogin = async () => {
+  const onSubmit = async () => {
     setLoading(true);
     setError("");
+    setSuccess("");
+
     try {
-      await authService.login(email, password);
-      router.replace("/(tabs)");
+      const res = await authService.resetPassword({
+        email,
+        token,
+        newPassword,
+      });
+      setSuccess(res.message || "Password reset successfully");
     } catch (e) {
       setError(getApiErrorMessage(e));
     } finally {
@@ -31,9 +39,11 @@ export default function LoginScreen() {
     <SafeAreaView className="flex-1 bg-white">
       <View className="flex-1 p-6 justify-center gap-5">
         <View className="gap-1">
-          <Text className="text-3xl font-bold text-gray-900">Welcome back</Text>
+          <Text className="text-3xl font-bold text-gray-900">
+            Reset password
+          </Text>
           <Text className="text-sm text-gray-600">
-            Sign in to continue managing your finances.
+            Paste the reset token and set a new password.
           </Text>
         </View>
 
@@ -51,13 +61,26 @@ export default function LoginScreen() {
           </View>
 
           <View className="gap-2">
-            <Text className="text-xs font-medium text-gray-600">Password</Text>
+            <Text className="text-xs font-medium text-gray-600">Token</Text>
             <TextInput
-              value={password}
-              onChangeText={setPassword}
+              value={token}
+              onChangeText={setToken}
+              autoCapitalize="none"
+              className="border border-gray-200 rounded-xl px-4 py-3"
+              placeholder="reset token"
+            />
+          </View>
+
+          <View className="gap-2">
+            <Text className="text-xs font-medium text-gray-600">
+              New password
+            </Text>
+            <TextInput
+              value={newPassword}
+              onChangeText={setNewPassword}
               secureTextEntry
               className="border border-gray-200 rounded-xl px-4 py-3"
-              placeholder="password"
+              placeholder="new password"
             />
           </View>
 
@@ -67,14 +90,31 @@ export default function LoginScreen() {
             </View>
           )}
 
+          {!!success && (
+            <View className="bg-green-50 border border-green-100 rounded-xl px-4 py-3">
+              <Text className="text-sm text-green-700">{success}</Text>
+            </View>
+          )}
+
           <TouchableOpacity
             disabled={loading}
-            onPress={onLogin}
+            onPress={onSubmit}
             className="bg-blue-600 rounded-xl px-4 py-3"
             style={{ opacity: loading ? 0.6 : 1 }}
           >
             <Text className="text-white text-center font-semibold">
-              {loading ? "Signing in..." : "Login"}
+              {loading ? "Submitting..." : "Reset password"}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            disabled={loading}
+            onPress={() => router.replace("/login" as any)}
+            className="bg-gray-900 rounded-xl px-4 py-3"
+            style={{ opacity: loading ? 0.6 : 1 }}
+          >
+            <Text className="text-white text-center font-semibold">
+              Back to login
             </Text>
           </TouchableOpacity>
 
@@ -85,26 +125,9 @@ export default function LoginScreen() {
             style={{ opacity: loading ? 0.6 : 1 }}
           >
             <Text className="text-gray-900 text-center font-semibold">
-              Forgot password?
+              Back to forgot password
             </Text>
           </TouchableOpacity>
-
-          <TouchableOpacity
-            disabled={loading}
-            onPress={() => router.replace("/register" as any)}
-            className="bg-gray-900 rounded-xl px-4 py-3"
-            style={{ opacity: loading ? 0.6 : 1 }}
-          >
-            <Text className="text-white text-center font-semibold">
-              Register
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <View className="items-center">
-          <Text className="text-xs text-gray-500">
-            If your session expires, you will be redirected here.
-          </Text>
         </View>
       </View>
     </SafeAreaView>

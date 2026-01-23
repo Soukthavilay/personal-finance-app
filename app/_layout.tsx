@@ -22,7 +22,11 @@ export default function RootLayout() {
   const router = useRouter();
   const segments = useSegments() as string[];
 
-  const inAuth = segments[0] === "login" || segments[0] === "register";
+  const inAuth =
+    segments[0] === "login" ||
+    segments[0] === "register" ||
+    segments[0] === "forgot-password" ||
+    segments[0] === "reset-password";
 
   React.useEffect(() => {
     const unsubscribe = onUnauthorized(() => {
@@ -55,6 +59,8 @@ export default function RootLayout() {
       <Stack>
         <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="register" options={{ headerShown: false }} />
+        <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
+        <Stack.Screen name="reset-password" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen
           name="modal"
