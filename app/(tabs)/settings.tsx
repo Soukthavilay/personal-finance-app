@@ -16,9 +16,11 @@ import {
   budgetService,
   categoryService,
   notificationService,
+  userService,
 } from "@/services";
 import { getApiErrorMessage } from "@/services/apiClient";
-import { formatCurrency } from "@/utils/formatting";
+import { useSettingsStore } from "@/stores/settingsStore";
+import { formatMoney } from "@/utils/formatMoney";
 
 type AuthUser = {
   id: number;
@@ -28,6 +30,9 @@ type AuthUser = {
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const currency = useSettingsStore((s) => s.settings.currency);
+  const setFromProfile = useSettingsStore((s) => s.setFromProfile);
+  const resetSettings = useSettingsStore((s) => s.reset);
 
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -190,6 +195,7 @@ export default function SettingsScreen() {
                   run(async () => {
                     await authService.logout();
                     setUser(null);
+                    resetSettings();
                     return { message: "Logged out" };
                   })
                 }
@@ -238,6 +244,13 @@ export default function SettingsScreen() {
                       run(async () => {
                         const u = await authService.login(email, password);
                         setUser(u as AuthUser);
+
+                        try {
+                          const profile = await userService.getMyProfile();
+                          setFromProfile(profile);
+                        } catch {
+                          // ignore settings sync error
+                        }
                         return u;
                       })
                     }
@@ -378,7 +391,7 @@ export default function SettingsScreen() {
                         </Text>
                       </View>
                       <Text className="text-sm font-bold text-gray-900">
-                        {formatCurrency(Number(b.amount) || 0)}
+                        {formatMoney(Number(b.amount) || 0, currency)}
                       </Text>
                     </View>
                   ))}

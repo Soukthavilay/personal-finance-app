@@ -5,9 +5,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { userService } from "@/services";
 import { getApiErrorMessage } from "@/services/apiClient";
+import { DateFormat, Language, useSettingsStore } from "@/stores/settingsStore";
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const setFromProfile = useSettingsStore((s) => s.setFromProfile);
 
   const [loading, setLoading] = React.useState(false);
   const [status, setStatus] = React.useState<string>("");
@@ -21,6 +23,11 @@ export default function ProfileScreen() {
   const [timezone, setTimezone] = React.useState("");
   const [avatarUrl, setAvatarUrl] = React.useState("");
 
+  const [language, setLanguage] = React.useState<Language>("vi");
+  const [dateFormat, setDateFormat] = React.useState<DateFormat>("YYYY-MM-DD");
+  const [weekStartDay, setWeekStartDay] = React.useState("1");
+  const [monthlyIncomeTarget, setMonthlyIncomeTarget] = React.useState("");
+
   const loadProfile = React.useCallback(async () => {
     setLoading(true);
     setStatus("");
@@ -31,6 +38,25 @@ export default function ProfileScreen() {
       setCurrency(p.currency || "");
       setTimezone(p.timezone || "");
       setAvatarUrl(p.avatar_url || "");
+
+      if (p.language === "vi" || p.language === "en") setLanguage(p.language);
+      if (
+        p.date_format === "YYYY-MM-DD" ||
+        p.date_format === "DD/MM/YYYY" ||
+        p.date_format === "MM/DD/YYYY"
+      ) {
+        setDateFormat(p.date_format);
+      }
+      if (typeof p.week_start_day === "number") {
+        setWeekStartDay(String(p.week_start_day));
+      }
+      if (typeof p.monthly_income_target === "number") {
+        setMonthlyIncomeTarget(String(p.monthly_income_target));
+      } else {
+        setMonthlyIncomeTarget("");
+      }
+
+      setFromProfile(p);
       setStatus("Loaded");
       return p;
     } catch (e) {
@@ -39,7 +65,7 @@ export default function ProfileScreen() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [setFromProfile]);
 
   React.useEffect(() => {
     loadProfile();
@@ -54,6 +80,12 @@ export default function ProfileScreen() {
         currency: currency.trim(),
         timezone: timezone.trim(),
         avatar_url: avatarUrl.trim() ? avatarUrl.trim() : null,
+        language,
+        date_format: dateFormat,
+        week_start_day: Number(weekStartDay) || 1,
+        monthly_income_target: monthlyIncomeTarget.trim()
+          ? Number(monthlyIncomeTarget)
+          : null,
       });
       setStatus(res.message || "Saved");
       await loadProfile();
@@ -143,6 +175,133 @@ export default function ProfileScreen() {
                 autoCapitalize="none"
                 className="border border-gray-200 rounded-xl px-4 py-3"
                 placeholder="https://..."
+              />
+            </View>
+
+            <View className="gap-2">
+              <Text className="text-xs font-medium text-gray-600">
+                Monthly income target
+              </Text>
+              <TextInput
+                value={monthlyIncomeTarget}
+                onChangeText={setMonthlyIncomeTarget}
+                keyboardType="numeric"
+                className="border border-gray-200 rounded-xl px-4 py-3"
+                placeholder="e.g. 10000000"
+              />
+            </View>
+
+            <View className="gap-2">
+              <Text className="text-xs font-medium text-gray-600">
+                Language
+              </Text>
+              <View className="flex-row gap-3">
+                <TouchableOpacity
+                  disabled={loading}
+                  onPress={() => setLanguage("vi")}
+                  className={`flex-1 rounded-xl px-4 py-3 ${
+                    language === "vi" ? "bg-gray-900" : "bg-gray-100"
+                  }`}
+                  style={{ opacity: loading ? 0.6 : 1 }}
+                >
+                  <Text
+                    className={`text-center font-semibold ${
+                      language === "vi" ? "text-white" : "text-gray-900"
+                    }`}
+                  >
+                    VI
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  disabled={loading}
+                  onPress={() => setLanguage("en")}
+                  className={`flex-1 rounded-xl px-4 py-3 ${
+                    language === "en" ? "bg-gray-900" : "bg-gray-100"
+                  }`}
+                  style={{ opacity: loading ? 0.6 : 1 }}
+                >
+                  <Text
+                    className={`text-center font-semibold ${
+                      language === "en" ? "text-white" : "text-gray-900"
+                    }`}
+                  >
+                    EN
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View className="gap-2">
+              <Text className="text-xs font-medium text-gray-600">
+                Date format
+              </Text>
+              <View className="flex-row gap-3">
+                <TouchableOpacity
+                  disabled={loading}
+                  onPress={() => setDateFormat("YYYY-MM-DD")}
+                  className={`flex-1 rounded-xl px-4 py-3 ${
+                    dateFormat === "YYYY-MM-DD" ? "bg-gray-900" : "bg-gray-100"
+                  }`}
+                  style={{ opacity: loading ? 0.6 : 1 }}
+                >
+                  <Text
+                    className={`text-center font-semibold ${
+                      dateFormat === "YYYY-MM-DD"
+                        ? "text-white"
+                        : "text-gray-900"
+                    }`}
+                  >
+                    YYYY-MM-DD
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  disabled={loading}
+                  onPress={() => setDateFormat("DD/MM/YYYY")}
+                  className={`flex-1 rounded-xl px-4 py-3 ${
+                    dateFormat === "DD/MM/YYYY" ? "bg-gray-900" : "bg-gray-100"
+                  }`}
+                  style={{ opacity: loading ? 0.6 : 1 }}
+                >
+                  <Text
+                    className={`text-center font-semibold ${
+                      dateFormat === "DD/MM/YYYY"
+                        ? "text-white"
+                        : "text-gray-900"
+                    }`}
+                  >
+                    DD/MM/YYYY
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity
+                disabled={loading}
+                onPress={() => setDateFormat("MM/DD/YYYY")}
+                className={`rounded-xl px-4 py-3 ${
+                  dateFormat === "MM/DD/YYYY" ? "bg-gray-900" : "bg-gray-100"
+                }`}
+                style={{ opacity: loading ? 0.6 : 1 }}
+              >
+                <Text
+                  className={`text-center font-semibold ${
+                    dateFormat === "MM/DD/YYYY" ? "text-white" : "text-gray-900"
+                  }`}
+                >
+                  MM/DD/YYYY
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View className="gap-2">
+              <Text className="text-xs font-medium text-gray-600">
+                Week start day (1-7)
+              </Text>
+              <TextInput
+                value={weekStartDay}
+                onChangeText={setWeekStartDay}
+                keyboardType="numeric"
+                className="border border-gray-200 rounded-xl px-4 py-3"
+                placeholder="1"
               />
             </View>
 

@@ -1,4 +1,6 @@
-import { formatCurrency } from "@/utils/formatting";
+import { useSettingsStore } from "@/stores/settingsStore";
+import { formatDate } from "@/utils/formatDate";
+import { formatMoney } from "@/utils/formatMoney";
 import {
     Briefcase,
     Coffee,
@@ -8,7 +10,7 @@ import {
     Heart,
     Home,
     ShoppingBag,
-    Zap
+    Zap,
 } from "lucide-react-native";
 import React from "react";
 import { Text, View } from "react-native";
@@ -52,6 +54,10 @@ const getIconForCategory = (category: string) => {
 };
 
 export function RecentTransactions({ transactions }: RecentTransactionsProps) {
+  const { currency, language, date_format } = useSettingsStore(
+    (s) => s.settings,
+  );
+
   if (transactions.length === 0) {
     return (
       <View className="mx-6 mb-6 p-6 bg-white rounded-2xl items-center justify-center border border-gray-100 border-dashed">
@@ -88,10 +94,7 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
                     {transaction.category}
                   </Text>
                   <Text className="text-gray-500 text-xs">
-                    {transaction.date.toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                    })}
+                    {formatDate(transaction.date, date_format, language)}
                   </Text>
                 </View>
               </View>
@@ -101,7 +104,7 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
                   className={`font-bold ${isExpense ? "text-red-500" : "text-green-600"}`}
                 >
                   {isExpense ? "-" : "+"}
-                  {formatCurrency(transaction.amount)}
+                  {formatMoney(transaction.amount, currency)}
                 </Text>
               </View>
             </View>

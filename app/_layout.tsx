@@ -9,8 +9,9 @@ import React from "react";
 import "react-native-reanimated";
 import "../global.css";
 
-import { authService } from "@/services";
+import { authService, userService } from "@/services";
 import { onUnauthorized } from "@/services/authEvents";
+import { useSettingsStore } from "@/stores/settingsStore";
 import { useColorScheme } from "../hooks/use-color-scheme";
 
 export const unstable_settings = {
@@ -21,6 +22,8 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
   const router = useRouter();
   const segments = useSegments() as string[];
+  const setFromProfile = useSettingsStore((s) => s.setFromProfile);
+  const resetSettings = useSettingsStore((s) => s.reset);
 
   const inAuth =
     segments[0] === "login" ||
@@ -30,10 +33,11 @@ export default function RootLayout() {
 
   React.useEffect(() => {
     const unsubscribe = onUnauthorized(() => {
+      resetSettings();
       router.replace("/login" as any);
     });
     return unsubscribe;
-  }, [router]);
+  }, [resetSettings, router]);
 
   React.useEffect(() => {
     if (inAuth) return;
@@ -42,6 +46,13 @@ export default function RootLayout() {
     (async () => {
       try {
         await authService.me();
+
+        try {
+          const profile = await userService.getMyProfile();
+          setFromProfile(profile);
+        } catch {
+          // ignore settings sync error
+        }
       } catch {
         if (!cancelled) {
           router.replace("/login" as any);
@@ -52,7 +63,7 @@ export default function RootLayout() {
     return () => {
       cancelled = true;
     };
-  }, [inAuth, router]);
+  }, [inAuth, router, setFromProfile]);
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>

@@ -8,6 +8,14 @@ export type UserProfile = {
   currency: string;
   timezone: string;
   avatar_url: string | null;
+  monthly_income_target?: number | null;
+  language?: "vi" | "en";
+  date_format?: "YYYY-MM-DD" | "DD/MM/YYYY" | "MM/DD/YYYY";
+  week_start_day?: number;
+  phone?: string | null;
+  gender?: "male" | "female" | "other" | null;
+  dob?: string | null;
+  last_login_at?: string | null;
   created_at?: string;
 };
 
@@ -17,7 +25,20 @@ export async function getMyProfile(): Promise<UserProfile> {
 }
 
 export type UpdateMyProfileInput = Partial<
-  Pick<UserProfile, "full_name" | "currency" | "timezone" | "avatar_url">
+  Pick<
+    UserProfile,
+    | "full_name"
+    | "currency"
+    | "timezone"
+    | "avatar_url"
+    | "monthly_income_target"
+    | "language"
+    | "date_format"
+    | "week_start_day"
+    | "phone"
+    | "gender"
+    | "dob"
+  >
 >;
 
 export async function updateMyProfile(

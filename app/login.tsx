@@ -3,11 +3,13 @@ import React from "react";
 import { Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { authService } from "@/services";
+import { authService, userService } from "@/services";
 import { getApiErrorMessage } from "@/services/apiClient";
+import { useSettingsStore } from "@/stores/settingsStore";
 
 export default function LoginScreen() {
   const router = useRouter();
+  const setFromProfile = useSettingsStore((s) => s.setFromProfile);
 
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -19,6 +21,14 @@ export default function LoginScreen() {
     setError("");
     try {
       await authService.login(email, password);
+
+      try {
+        const profile = await userService.getMyProfile();
+        setFromProfile(profile);
+      } catch {
+        // ignore settings sync error
+      }
+
       router.replace("/(tabs)");
     } catch (e) {
       setError(getApiErrorMessage(e));

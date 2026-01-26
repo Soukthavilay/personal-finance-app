@@ -4,6 +4,8 @@ export type DashboardStats = {
   income: number;
   expense: number;
   balance: number;
+  monthly_income: number;
+  monthly_expense: number;
   categoryStats: Array<{ name: string; total: string }>;
 };
 
