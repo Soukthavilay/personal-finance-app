@@ -1,9 +1,5 @@
-import {
-  CreditCard,
-  DollarSign,
-  TrendingUp,
-  Wallet,
-} from "lucide-react-native";
+import { CreditCard, DollarSign, TrendingUp, Wallet } from "lucide-react-native";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Dimensions,
   ScrollView,
@@ -15,16 +11,13 @@ import { LineChart } from "react-native-chart-kit";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import * as Haptics from "expo-haptics";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   RecentTransactions,
   Transaction,
-} from "@/components/RecentTransactions";
-import {
   TransactionModal,
   TransactionType,
-} from "@/components/TransactionModal";
+} from "@/components";
 import {
   authService,
   categoryService,
@@ -32,11 +25,13 @@ import {
   transactionService,
 } from "@/services";
 import { getApiErrorMessage } from "@/services/apiClient";
+import { useDataSync, SyncEvent } from "@/contexts/DataSyncContext";
 import { formatDateYYYYMMDD } from "@/utils/date";
 import { formatCurrency } from "@/utils/formatting";
 
 export default function HomeScreen() {
   const screenWidth = Dimensions.get("window").width;
+  const { subscribe, dashboardRefreshKey } = useDataSync();
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -47,20 +42,20 @@ export default function HomeScreen() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [categories, setCategories] = useState<categoryService.Category[]>([]);
   const [categoryStats, setCategoryStats] = useState<
-    { name: string; total: string }[]
+    Array<{ name: string; total: string }>
   >([]);
 
   const categoryIdByTypeAndName = useMemo(() => {
     const map = new Map<string, number>();
-    for (const c of categories) {
-      map.set(`${c.type}:${c.name.toLowerCase()}`, c.id);
-    }
+    categories.forEach((cat) => {
+      map.set(`${cat.type}:${cat.name.toLowerCase()}`, cat.id);
+    });
     return map;
   }, [categories]);
 
   const loadDashboard = useCallback(async () => {
-    setError("");
     try {
+      setError("");
       const [meRes, dashboardRes, categoriesRes, transactionsRes] =
         await Promise.all([
           authService.me(),
@@ -83,17 +78,48 @@ export default function HomeScreen() {
             : "expense";
         return {
           id: String(t.id),
-          category: t.category_name || String(t.category_id),
-          amount: Number.isFinite(amountNum) ? amountNum : 0,
+          amount: amountNum,
+          category: t.category_name || "Unknown",
           date: new Date(t.transaction_date),
           type: txType,
+          description: t.description || "",
         };
       });
+
       setTransactions(uiTx);
-    } catch (e) {
-      setError(getApiErrorMessage(e));
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err));
     }
   }, []);
+
+  // Listen for sync events
+  useEffect(() => {
+    const unsubscribeTransactions = subscribe(
+      SyncEvent.TRANSACTION_CREATED,
+      () => {
+        console.log('Transaction created, refreshing dashboard');
+        loadDashboard();
+      }
+    );
+
+    const unsubscribeCategories = subscribe(
+      SyncEvent.CATEGORY_CREATED,
+      () => {
+        console.log('Category created, refreshing dashboard');
+        loadDashboard();
+      }
+    );
+
+    return () => {
+      unsubscribeTransactions?.();
+      unsubscribeCategories?.();
+    };
+  }, [loadDashboard, subscribe]);
+
+  // Refresh when dashboard refresh key changes
+  useEffect(() => {
+    loadDashboard();
+  }, [dashboardRefreshKey, loadDashboard]);
 
   useEffect(() => {
     loadDashboard();

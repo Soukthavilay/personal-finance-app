@@ -12,9 +12,11 @@ import {
 } from "@/components/TransactionModal";
 import { categoryService, transactionService } from "@/services";
 import { getApiErrorMessage } from "@/services/apiClient";
+import { useDataSync, SyncEvent } from "@/contexts/DataSyncContext";
 import { formatDateYYYYMMDD } from "@/utils/date";
 
 export default function TransactionsScreen() {
+  const { subscribe, transactionRefreshKey } = useDataSync();
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string>("");
   const [transactions, setTransactions] = React.useState<Transaction[]>([]);
@@ -49,32 +51,36 @@ export default function TransactionsScreen() {
           : "expense";
       return {
         id: String(t.id),
-        category: t.category_name || String(t.category_id),
-        amount: Number.isFinite(amountNum) ? amountNum : 0,
+        amount: amountNum,
+        category: t.category_name || "Unknown",
         date: new Date(t.transaction_date),
         type: txType,
+        description: t.description || "",
       };
     });
     setTransactions(uiTx);
   }, []);
 
+  // Listen for sync events
   React.useEffect(() => {
-    let mounted = true;
-    (async () => {
-      setLoading(true);
-      setError("");
-      try {
-        await fetchData();
-      } catch (e) {
-        if (mounted) setError(getApiErrorMessage(e));
-      } finally {
-        if (mounted) setLoading(false);
+    const unsubscribe = subscribe(
+      SyncEvent.TRANSACTION_CREATED,
+      () => {
+        console.log('Transaction created, refreshing transactions list');
+        fetchData();
       }
-    })();
+    );
 
-    return () => {
-      mounted = false;
-    };
+    return unsubscribe;
+  }, [fetchData, subscribe]);
+
+  // Refresh when transaction refresh key changes
+  React.useEffect(() => {
+    fetchData();
+  }, [transactionRefreshKey, fetchData]);
+
+  React.useEffect(() => {
+    fetchData().finally(() => setLoading(false));
   }, [fetchData]);
 
   const onRefresh = async () => {

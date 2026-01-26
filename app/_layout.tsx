@@ -13,6 +13,7 @@ import { authService, userService } from "@/services";
 import { onUnauthorized } from "@/services/authEvents";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useColorScheme } from "../hooks/use-color-scheme";
+import { DataSyncProvider } from "@/contexts/DataSyncContext";
 
 export const unstable_settings = {
   anchor: "(tabs)",
@@ -67,19 +68,21 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="login" options={{ headerShown: false }} />
-        <Stack.Screen name="register" options={{ headerShown: false }} />
-        <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
-        <Stack.Screen name="reset-password" options={{ headerShown: false }} />
-        <Stack.Screen name="profile" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="modal"
-          options={{ presentation: "modal", title: "Modal" }}
-        />
-      </Stack>
-      <StatusBar style="auto" />
+      <DataSyncProvider>
+        <Stack>
+          <Stack.Screen name="login" options={{ headerShown: false }} />
+          <Stack.Screen name="register" options={{ headerShown: false }} />
+          <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
+          <Stack.Screen name="reset-password" options={{ headerShown: false }} />
+          <Stack.Screen name="profile" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="modal"
+            options={{ presentation: "modal", title: "Modal" }}
+          />
+        </Stack>
+        <StatusBar style="auto" />
+      </DataSyncProvider>
     </ThemeProvider>
   );
 }

@@ -12,7 +12,7 @@ import {
     TouchableWithoutFeedback,
     View,
 } from "react-native";
-// Using inline colors for simplicity if theme constant isn't fully defined yet, or fallback
+import { useDataSync, SyncEvent } from "@/contexts/DataSyncContext";
 
 export type TransactionType = "income" | "expense";
 
@@ -49,6 +49,7 @@ export function TransactionModal({
   onSave,
   initialType,
 }: TransactionModalProps) {
+  const { triggerSync } = useDataSync();
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("");
   const [date, setDate] = useState(new Date());
@@ -66,7 +67,18 @@ export function TransactionModal({
 
   const handleSave = () => {
     if (!amount || !category) return;
+    
+    // Call the original save function
     onSave(parseFloat(amount), category, date, initialType);
+    
+    // Trigger sync events for real-time updates
+    triggerSync(SyncEvent.TRANSACTION_CREATED, {
+      amount: parseFloat(amount),
+      category,
+      date,
+      type: initialType
+    });
+    
     onClose();
   };
 
