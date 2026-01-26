@@ -1,4 +1,5 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { useRouter } from "expo-router";
 import React from "react";
 import {
   ScrollView,
@@ -26,6 +27,8 @@ type AuthUser = {
 };
 
 export default function SettingsScreen() {
+  const router = useRouter();
+
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [status, setStatus] = React.useState<string>("");
@@ -165,6 +168,38 @@ export default function SettingsScreen() {
               <Text className="text-sm text-gray-600">
                 You are not logged in.
               </Text>
+            )}
+
+            {!!user && (
+              <TouchableOpacity
+                disabled={loading}
+                onPress={() => router.push("/profile" as any)}
+                className="bg-gray-100 rounded-xl px-4 py-3"
+                style={{ opacity: loading ? 0.6 : 1 }}
+              >
+                <Text className="text-gray-900 text-center font-semibold">
+                  Open Profile
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            {!!user && (
+              <TouchableOpacity
+                disabled={loading}
+                onPress={() =>
+                  run(async () => {
+                    await authService.logout();
+                    setUser(null);
+                    return { message: "Logged out" };
+                  })
+                }
+                className="bg-red-600 rounded-xl px-4 py-3"
+                style={{ opacity: loading ? 0.6 : 1 }}
+              >
+                <Text className="text-white text-center font-semibold">
+                  Logout
+                </Text>
+              </TouchableOpacity>
             )}
 
             {!user && (

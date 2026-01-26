@@ -4,4 +4,5 @@ export * as categoryService from "./categoryService";
 export * as notificationService from "./notificationService";
 export * as reportService from "./reportService";
 export * as transactionService from "./transactionService";
+export * as userService from "./userService";
 
