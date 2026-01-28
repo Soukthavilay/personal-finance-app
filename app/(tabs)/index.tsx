@@ -1,4 +1,4 @@
-import { CreditCard, DollarSign, TrendingUp, Wallet } from "lucide-react-native";
+import { CreditCard, DollarSign, TrendingUp, Wallet, TrendingDown, PieChart as PieChartIcon, BarChart3, Target, PiggyBank } from "lucide-react-native";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Dimensions,
@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { LineChart } from "react-native-chart-kit";
+import { LineChart, PieChart } from "react-native-chart-kit";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import * as Haptics from "expo-haptics";
@@ -20,6 +20,7 @@ import {
 } from "@/components";
 import {
   authService,
+  budgetService,
   categoryService,
   reportService,
   transactionService,
@@ -39,10 +40,21 @@ export default function HomeScreen() {
   const [error, setError] = useState<string>("");
   const [userName, setUserName] = useState<string>("");
   const [totalBalance, setTotalBalance] = useState<number>(0);
+  const [totalIncome, setTotalIncome] = useState<number>(0);
+  const [totalExpense, setTotalExpense] = useState<number>(0);
+  const [totalSavings, setTotalSavings] = useState<number>(0);
+  const [savingsRate, setSavingsRate] = useState<number>(0);
+  const [monthlyBudget, setMonthlyBudget] = useState<number>(0);
+  const [budgetUsed, setBudgetUsed] = useState<number>(0);
+  const [budgetRemaining, setBudgetRemaining] = useState<number>(0);
+  const [budgetUsedPercentage, setBudgetUsedPercentage] = useState<number>(0);
   const [refreshKey, setRefreshKey] = useState(0);
   const [categories, setCategories] = useState<categoryService.Category[]>([]);
   const [categoryStats, setCategoryStats] = useState<
     Array<{ name: string; total: string }>
+  >([]);
+  const [categorySpending, setCategorySpending] = useState<
+    Array<{ name: string; amount: number; percentage: number }>
   >([]);
 
   const categoryIdByTypeAndName = useMemo(() => {
@@ -56,12 +68,13 @@ export default function HomeScreen() {
   const loadDashboard = useCallback(async () => {
     try {
       setError("");
-      const [meRes, dashboardRes, categoriesRes, transactionsRes] =
+      const [meRes, dashboardRes, categoriesRes, transactionsRes, budgetsRes] =
         await Promise.all([
           authService.me(),
           reportService.getDashboard(),
           categoryService.listCategories(),
           transactionService.listTransactions({ limit: 20, offset: 0 }),
+          budgetService.listBudgets({ period: new Date().toISOString().slice(0, 7) }) // Current period
         ]);
 
       setUserName(meRes.username || "");
@@ -87,6 +100,59 @@ export default function HomeScreen() {
       });
 
       setTransactions(uiTx);
+      
+      // Calculate total income and expenses
+      const income = uiTx.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+      const expense = uiTx.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+      const savings = income - expense;
+      const savingsRatePercent = income > 0 ? (savings / income) * 100 : 0;
+      
+      setTotalIncome(income);
+      setTotalExpense(expense);
+      setTotalSavings(savings);
+      setSavingsRate(savingsRatePercent);
+      
+      // Calculate budget from real budgets or default
+      const totalBudgetFromAPI = (budgetsRes || []).reduce((sum: number, budget: any) => 
+        sum + Number(budget.amount), 0
+      );
+      
+      // If no budgets set, use default (70% of income)
+      const actualBudget = totalBudgetFromAPI > 0 ? totalBudgetFromAPI : income * 0.7;
+      const used = expense;
+      const remaining = actualBudget - used;
+      const usedPercentage = actualBudget > 0 ? (used / actualBudget) * 100 : 0;
+      
+      setMonthlyBudget(actualBudget);
+      setBudgetUsed(used);
+      setBudgetRemaining(remaining);
+      setBudgetUsedPercentage(usedPercentage);
+      
+      // Calculate category spending
+      const expenseByCategory = uiTx
+        .filter(t => t.type === 'expense')
+        .reduce((acc, t) => {
+          const existing = acc.find(item => item.name === t.category);
+          if (existing) {
+            existing.amount += t.amount;
+          } else {
+            acc.push({ name: t.category, amount: t.amount, percentage: 0 });
+          }
+          return acc;
+        }, [] as Array<{ name: string; amount: number; percentage: number }>);
+      
+      // Calculate percentages
+      const categoryWithPercentages = expenseByCategory.map(cat => ({
+        ...cat,
+        percentage: expense > 0 ? (cat.amount / expense) * 100 : 0
+      }));
+      
+      // Sort by amount and take top 6
+      const topCategories = categoryWithPercentages
+        .sort((a, b) => b.amount - a.amount)
+        .slice(0, 6);
+      
+      setCategorySpending(topCategories);
     } catch (err: unknown) {
       setError(getApiErrorMessage(err));
     }
@@ -164,7 +230,7 @@ export default function HomeScreen() {
     }
   };
 
-  const chartData = useMemo(() => {
+  const lineChartData = useMemo(() => {
     const top = (categoryStats || [])
       .slice()
       .sort((a, b) => Number(b.total) - Number(a.total))
@@ -197,6 +263,56 @@ export default function HomeScreen() {
     };
   }, [categoryStats]);
 
+  const pieChartData = useMemo(() => {
+    if (categorySpending.length === 0) {
+      return [
+        {
+          name: "No data",
+          population: 1,
+          color: "#E5E7EB",
+          legendFontColor: "#6B7280",
+          legendFontSize: 12,
+        },
+      ];
+    }
+
+    const colors = [
+      "#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899"
+    ];
+
+    return categorySpending.map((cat, index) => ({
+      name: cat.name,
+      population: cat.amount,
+      color: colors[index % colors.length],
+      legendFontColor: "#374151",
+      legendFontSize: 12,
+    }));
+  }, [categorySpending]);
+
+  const barChartData = useMemo(() => {
+    if (categorySpending.length === 0) {
+      return {
+        labels: ["-"],
+        datasets: [
+          {
+            data: [0],
+          },
+        ],
+      };
+    }
+
+    return {
+      labels: categorySpending.map(cat => 
+        cat.name.length > 8 ? `${cat.name.slice(0, 8)}…` : cat.name
+      ),
+      datasets: [
+        {
+          data: categorySpending.map(cat => cat.amount),
+        },
+      ],
+    };
+  }, [categorySpending]);
+
   const chartConfig = {
     backgroundGradientFrom: "#3b82f6",
     backgroundGradientTo: "#2563eb",
@@ -208,7 +324,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
+    <SafeAreaView className="flex-1 bg-gray-50">
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View className="px-6 py-4 bg-white shadow-sm border-b border-gray-100 z-10">
@@ -221,81 +337,205 @@ export default function HomeScreen() {
                 {userName || "-"}
               </Text>
             </View>
-            <View className="bg-blue-100 p-2 rounded-full">
+            <TouchableOpacity className="bg-blue-100 p-2 rounded-full">
               <Wallet size={24} color="#2563eb" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Financial Overview Cards */}
+        <View className="px-6 py-6">
+          <View className="grid grid-cols-2 gap-4 mb-6">
+            {/* Total Balance Card */}
+            <View className="col-span-2 bg-gradient-to-r from-blue-500 to-blue-600 rounded-3xl p-6 shadow-xl">
+              <View className="flex-row items-center justify-between mb-4">
+                <Text className="text-black text-base font-medium">
+                  Total Balance
+                </Text>
+                <Wallet size={20} />
+              </View>
+              <Text className="text-3xl font-bold mb-2">
+                {formatCurrency(totalBalance)}
+              </Text>
+              <View className="flex-row items-center">
+                <TrendingUp size={16} color="#10B981" />
+                <Text className="text-green-300 ml-2 text-sm font-medium">
+                  +{savingsRate.toFixed(1)}% savings rate
+                </Text>
+              </View>
+            </View>
+
+            {/* Income Card */}
+            <View className="bg-green-50 border border-green-200 rounded-2xl p-4">
+              <View className="flex-row items-center justify-between mb-2">
+                <DollarSign size={20} color="#16a34a" />
+                <Text className="text-xs text-green-600 font-medium">+12%</Text>
+              </View>
+              <Text className="text-green-900 text-xl font-bold">
+                {formatCurrency(totalIncome)}
+              </Text>
+              <Text className="text-green-700 text-sm mt-1">Income</Text>
+            </View>
+
+            {/* Expense Card */}
+            <View className="bg-red-50 border border-red-200 rounded-2xl p-4">
+              <View className="flex-row items-center justify-between mb-2">
+                <CreditCard size={20} color="#dc2626" />
+                <Text className="text-xs text-red-600 font-medium">+8%</Text>
+              </View>
+              <Text className="text-red-900 text-xl font-bold">
+                {formatCurrency(totalExpense)}
+              </Text>
+              <Text className="text-red-700 text-sm mt-1">Expenses</Text>
+            </View>
+
+            {/* Savings Card */}
+            <View className="bg-purple-50 border border-purple-200 rounded-2xl p-4">
+              <View className="flex-row items-center justify-between mb-2">
+                <PiggyBank size={20} color="#8B5CF6" />
+                <Text className="text-xs text-purple-600 font-medium">
+                  {savingsRate > 0 ? 'Good' : 'Low'}
+                </Text>
+              </View>
+              <Text className="text-purple-900 text-xl font-bold">
+                {formatCurrency(totalSavings)}
+              </Text>
+              <Text className="text-purple-700 text-sm mt-1">Savings</Text>
+            </View>
+
+            {/* Budget Card */}
+            <View className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4">
+              <View className="flex-row items-center justify-between mb-2">
+                <Target size={20} color="#F59E0B" />
+                <Text className={`text-xs font-medium ${
+                  budgetUsedPercentage > 90 ? 'text-red-600' : 
+                  budgetUsedPercentage > 70 ? 'text-yellow-600' : 'text-green-600'
+                }`}>
+                  {budgetUsedPercentage.toFixed(0)}% used
+                </Text>
+              </View>
+              <Text className={`text-xl font-bold ${
+                budgetRemaining < 0 ? 'text-red-900' : 'text-yellow-900'
+              }`}>
+                {formatCurrency(Math.abs(budgetRemaining))}
+              </Text>
+              <Text className={`text-sm mt-1 ${
+                budgetRemaining < 0 ? 'text-red-700' : 'text-yellow-700'
+              }`}>
+                {budgetRemaining < 0 ? 'Over Budget' : 'Budget Left'}
+              </Text>
+            </View>
+
+            {/* Savings Rate Card */}
+            <View className="bg-orange-50 border border-orange-200 rounded-2xl p-4">
+              <View className="flex-row items-center justify-between mb-2">
+                <Target size={20} color="#F59E0B" />
+                <Text className="text-xs text-orange-600 font-medium">
+                  {savingsRate >= 20 ? 'Excellent' : savingsRate >= 10 ? 'Good' : 'Needs Work'}
+                </Text>
+              </View>
+              <Text className="text-orange-900 text-xl font-bold">
+                {savingsRate.toFixed(1)}%
+              </Text>
+              <Text className="text-orange-700 text-sm mt-1">Savings Rate</Text>
             </View>
           </View>
-        </View>
 
-        {/* Balance Card */}
-        <View className="m-6 p-6 bg-blue-600 rounded-3xl shadow-xl shadow-blue-900/20">
-          <Text className="text-blue-100 text-base font-medium">
-            Total Balance
-          </Text>
-          <Text className="text-white text-4xl font-bold mt-2 tracking-tight">
-            {formatCurrency(totalBalance)}
-          </Text>
-          <View className="flex-row items-center mt-4 bg-blue-500/50 self-start px-3 py-1.5 rounded-full border border-blue-400/30">
-            <TrendingUp size={16} color="#fff" />
-            <Text className="text-white ml-2 text-sm font-medium">
-              +2.5% this month
+          {/* Quick Actions */}
+          <View className="mb-6">
+            <Text className="text-lg font-bold text-gray-800 mb-4 tracking-tight">
+              Quick Actions
             </Text>
+            <View className="flex-row justify-between">
+              <TouchableOpacity
+                onPress={() => handleOpenModal("income")}
+                className="flex-1 bg-white p-4 rounded-2xl shadow-sm mr-3 items-center border border-gray-100 active:bg-gray-50"
+              >
+                <View className="bg-green-100 p-3 rounded-full mb-3 shadow-sm">
+                  <DollarSign size={24} color="#16a34a" />
+                </View>
+                <Text className="font-semibold text-gray-700">Add Income</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => handleOpenModal("expense")}
+                className="flex-1 bg-white p-4 rounded-2xl shadow-sm ml-3 items-center border border-gray-100 active:bg-gray-50"
+              >
+                <View className="bg-red-100 p-3 rounded-full mb-3 shadow-sm">
+                  <CreditCard size={24} color="#dc2626" />
+                </View>
+                <Text className="font-semibold text-gray-700">Add Expense</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
 
-        {/* Quick Actions */}
-        <View className="mx-6 mb-8">
-          <Text className="text-lg font-bold text-gray-800 mb-4 tracking-tight">
-            Quick Actions
-          </Text>
-          <View className="flex-row justify-between">
-            <TouchableOpacity
-              onPress={() => handleOpenModal("income")}
-              className="flex-1 bg-white p-4 rounded-2xl shadow-sm mr-3 items-center border border-gray-100 active:bg-gray-50"
-            >
-              <View className="bg-green-100 p-3 rounded-full mb-3 shadow-sm">
-                <DollarSign size={24} color="#16a34a" />
-              </View>
-              <Text className="font-semibold text-gray-700">Add Income</Text>
-            </TouchableOpacity>
+          {/* Spending Analysis Section */}
+          <View className="mb-6">
+            <View className="flex-row items-center justify-between mb-4">
+              <Text className="text-lg font-bold text-gray-800 tracking-tight">
+                Spending Analysis
+              </Text>
+              <TouchableOpacity className="flex-row items-center">
+                <BarChart3 size={16} color="#6B7280" />
+                <Text className="text-sm text-gray-600 ml-1">View All</Text>
+              </TouchableOpacity>
+            </View>
 
-            <TouchableOpacity
-              onPress={() => handleOpenModal("expense")}
-              className="flex-1 bg-white p-4 rounded-2xl shadow-sm ml-3 items-center border border-gray-100 active:bg-gray-50"
-            >
-              <View className="bg-red-100 p-3 rounded-full mb-3 shadow-sm">
-                <CreditCard size={24} color="#dc2626" />
-              </View>
-              <Text className="font-semibold text-gray-700">Add Expense</Text>
-            </TouchableOpacity>
+            {/* Pie Chart */}
+            <View className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-4">
+              <Text className="text-sm font-semibold text-gray-700 mb-3">
+                Spending by Category
+              </Text>
+              <PieChart
+                data={pieChartData}
+                width={screenWidth - 72}
+                height={200}
+                chartConfig={{
+                  color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                }}
+                accessor="population"
+                backgroundColor="transparent"
+                paddingLeft="15"
+                center={[10, 10]}
+                absolute
+              />
+            </View>
+
+            {/* Category Breakdown */}
+            <View className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+              <Text className="text-sm font-semibold text-gray-700 mb-3">
+                Top Categories
+              </Text>
+              {categorySpending.slice(0, 4).map((cat, index) => (
+                <View key={cat.name} className="flex-row items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                  <View className="flex-row items-center flex-1">
+                    <View 
+                      className="w-3 h-3 rounded-full mr-3"
+                      style={{ backgroundColor: ["#3B82F6", "#10B981", "#F59E0B", "#EF4444"][index % 4] }}
+                    />
+                    <Text className="text-sm text-gray-700">{cat.name}</Text>
+                  </View>
+                  <View className="items-end">
+                    <Text className="text-sm font-semibold text-gray-900">
+                      {formatCurrency(cat.amount)}
+                    </Text>
+                    <Text className="text-xs text-gray-500">
+                      {cat.percentage.toFixed(1)}%
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
           </View>
-        </View>
 
-        {/* Recent Transactions */}
-        <RecentTransactions transactions={transactions} />
+          {/* Recent Transactions */}
+          <RecentTransactions transactions={transactions} />
 
-        {!!error && (
-          <View className="mx-6 mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl">
-            <Text className="text-red-700 text-sm font-medium">{error}</Text>
-          </View>
-        )}
-
-        {/* Chart Section */}
-        <View className="mx-6 mb-10">
-          <Text className="text-lg font-bold text-gray-800 mb-4 tracking-tight">
-            Spending Analysis
-          </Text>
-          <LineChart
-            data={chartData}
-            width={screenWidth - 48}
-            height={220}
-            chartConfig={chartConfig}
-            bezier
-            style={{
-              marginVertical: 8,
-              borderRadius: 24,
-            }}
-          />
+          {!!error && (
+            <View className="mx-6 mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl">
+              <Text className="text-red-700 text-sm font-medium">{error}</Text>
+            </View>
+          )}
         </View>
       </ScrollView>
 

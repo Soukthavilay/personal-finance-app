@@ -36,6 +36,24 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="budgets"
+        options={{
+          title: "Budgets",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="dollarsign.circle" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="categories"
+        options={{
+          title: "Categories",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="tag" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="settings"
         options={{
           title: "Settings",
