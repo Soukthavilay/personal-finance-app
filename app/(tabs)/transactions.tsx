@@ -14,9 +14,12 @@ import { categoryService, transactionService } from "@/services";
 import { getApiErrorMessage } from "@/services/apiClient";
 import { useDataSync, SyncEvent } from "@/contexts/DataSyncContext";
 import { formatDateYYYYMMDD } from "@/utils/date";
+import { useWalletStore } from "@/stores/walletStore";
 
 export default function TransactionsScreen() {
   const { subscribe, transactionRefreshKey } = useDataSync();
+  const defaultWalletId = useWalletStore((s) => s.defaultWalletId);
+  const selectedWalletId = useWalletStore((s) => s.selectedWalletId);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string>("");
   const [transactions, setTransactions] = React.useState<Transaction[]>([]);
@@ -39,7 +42,11 @@ export default function TransactionsScreen() {
     setError("");
     const [categoriesRes, transactionsRes] = await Promise.all([
       categoryService.listCategories(),
-      transactionService.listTransactions({ limit: 50, offset: 0 }),
+      transactionService.listTransactions({
+        limit: 50,
+        offset: 0,
+        walletId: selectedWalletId ?? undefined,
+      }),
     ]);
     setCategories(categoriesRes);
     const uiTx: Transaction[] = (transactionsRes || []).map((t) => {
@@ -59,7 +66,7 @@ export default function TransactionsScreen() {
       };
     });
     setTransactions(uiTx);
-  }, []);
+  }, [selectedWalletId]);
 
   // Listen for sync events
   React.useEffect(() => {
@@ -135,6 +142,13 @@ export default function TransactionsScreen() {
     type: TransactionType,
   ) => {
     setError("");
+    const walletIdToUse = selectedWalletId ?? defaultWalletId;
+    if (!walletIdToUse) {
+      setError(
+        "No default wallet found. Please create a wallet and set it as default before adding transactions.",
+      );
+      return;
+    }
     const categoryId = categoryIdByTypeAndName.get(
       `${type}:${category.toLowerCase()}`,
     );
@@ -146,6 +160,7 @@ export default function TransactionsScreen() {
     try {
       await transactionService.createTransaction({
         category_id: categoryId,
+        wallet_id: walletIdToUse,
         amount,
         transaction_date: formatDateYYYYMMDD(date),
         description: "",
@@ -153,7 +168,14 @@ export default function TransactionsScreen() {
       setModalVisible(false);
       await fetchData();
     } catch (e) {
-      setError(getApiErrorMessage(e));
+      const msg = getApiErrorMessage(e);
+      if (msg.toLowerCase().includes("wallet_id is required")) {
+        setError(
+          "Missing wallet. Please create a wallet and set it as default, then try again.",
+        );
+      } else {
+        setError(msg);
+      }
     }
   };
 

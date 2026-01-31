@@ -3,13 +3,15 @@ import React from "react";
 import { Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { authService, userService } from "@/services";
+import { authService, userService, walletService } from "@/services";
 import { getApiErrorMessage } from "@/services/apiClient";
 import { useSettingsStore } from "@/stores/settingsStore";
+import { useWalletStore } from "@/stores/walletStore";
 
 export default function LoginScreen() {
   const router = useRouter();
   const setFromProfile = useSettingsStore((s) => s.setFromProfile);
+  const setWallets = useWalletStore((s) => s.setWallets);
 
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -27,6 +29,13 @@ export default function LoginScreen() {
         setFromProfile(profile);
       } catch {
         // ignore settings sync error
+      }
+
+      try {
+        const wallets = await walletService.listWallets();
+        setWallets(wallets || []);
+      } catch {
+        // ignore wallets sync error
       }
 
       router.replace("/(tabs)");

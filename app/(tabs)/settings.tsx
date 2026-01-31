@@ -146,7 +146,7 @@ export default function SettingsScreen() {
                   icon={<Wallet size={20} color="#10B981" />}
                   title="Quản lý ví"
                   subtitle="Xem và quản lý các tài khoản"
-                  onPress={showComingSoon}
+                  onPress={() => navigateTo("/wallets")}
                 />
                 <SettingsItem
                   icon={<LogOut size={20} color="#EF4444" />}

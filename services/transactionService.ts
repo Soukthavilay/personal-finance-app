@@ -4,6 +4,7 @@ export type TransactionDto = {
   id: number;
   user_id: number;
   category_id: number;
+  wallet_id?: number;
   amount: string | number;
   transaction_date: string;
   description?: string | null;
@@ -16,6 +17,7 @@ export type ListTransactionsParams = {
   startDate?: string;
   endDate?: string;
   categoryId?: number;
+  walletId?: number;
   limit?: number;
   offset?: number;
 };
@@ -27,6 +29,7 @@ export async function listTransactions(
   if (params.startDate) query.startDate = params.startDate;
   if (params.endDate) query.endDate = params.endDate;
   if (params.categoryId !== undefined) query.categoryId = params.categoryId;
+  if (params.walletId !== undefined) query.walletId = params.walletId;
   if (params.limit !== undefined) query.limit = params.limit;
   if (params.offset !== undefined) query.offset = params.offset;
 
@@ -41,6 +44,7 @@ export async function getTransaction(id: number): Promise<TransactionDto> {
 
 export async function createTransaction(input: {
   category_id: number;
+  wallet_id: number;
   amount: number;
   transaction_date: string;
   description?: string;
@@ -53,6 +57,7 @@ export async function updateTransaction(
   id: number,
   input: {
     category_id: number;
+    wallet_id: number;
     amount: number;
     transaction_date: string;
     description?: string;

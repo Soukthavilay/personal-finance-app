@@ -12,6 +12,7 @@ export type DashboardStats = {
 export async function getDashboard(params?: {
   month?: number;
   year?: number;
+  walletId?: number;
 }): Promise<DashboardStats> {
   const res = await apiClient.get("/reports/dashboard", { params });
   return res.data as DashboardStats;

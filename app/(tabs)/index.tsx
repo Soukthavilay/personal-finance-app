@@ -3,6 +3,8 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Dimensions,
+  Modal,
+  Pressable,
   ScrollView,
   Text,
   TouchableOpacity,
@@ -32,15 +34,21 @@ import { getApiErrorMessage } from "@/services/apiClient";
 import { useDataSync, SyncEvent } from "@/contexts/DataSyncContext";
 import { formatDateYYYYMMDD } from "@/utils/date";
 import { formatCurrency } from "@/utils/formatting";
+import { useWalletStore } from "@/stores/walletStore";
 
 export default function HomeScreen() {
   const screenWidth = Dimensions.get("window").width;
   const { subscribe, dashboardRefreshKey } = useDataSync();
+  const defaultWalletId = useWalletStore((s) => s.defaultWalletId);
+  const selectedWalletId = useWalletStore((s) => s.selectedWalletId);
+  const setSelectedWalletId = useWalletStore((s) => s.setSelectedWalletId);
+  const wallets = useWalletStore((s) => s.wallets);
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalType, setModalType] = useState<TransactionType>("expense");
   const [error, setError] = useState<string>("");
+  const [walletPickerVisible, setWalletPickerVisible] = useState(false);
   const [userName, setUserName] = useState<string>("");
   const [totalBalance, setTotalBalance] = useState<number>(0);
   const [totalIncome, setTotalIncome] = useState<number>(0);
@@ -154,6 +162,12 @@ export default function HomeScreen() {
     }
   };
 
+  const selectedWalletLabel = useMemo(() => {
+    if (selectedWalletId === null) return "All wallets";
+    const w = wallets.find((x) => x.id === selectedWalletId);
+    return w?.name || "Wallet";
+  }, [selectedWalletId, wallets]);
+
   const loadDashboard = useCallback(async (options?: { skipBudgetWarnings?: boolean }) => {
     try {
       setError("");
@@ -161,9 +175,13 @@ export default function HomeScreen() {
       const [meRes, dashboardRes, categoriesRes, transactionsRes, budgetsRes] =
         await Promise.all([
           authService.me(),
-          reportService.getDashboard(),
+          reportService.getDashboard({ walletId: selectedWalletId ?? undefined }),
           categoryService.listCategories(),
-          transactionService.listTransactions({ limit: 20, offset: 0 }),
+          transactionService.listTransactions({
+            limit: 20,
+            offset: 0,
+            walletId: selectedWalletId ?? undefined,
+          }),
           budgetService.listBudgets({ period: currentPeriod }) // Current period (local date)
         ]);
 
@@ -251,7 +269,7 @@ export default function HomeScreen() {
     } catch (err: unknown) {
       setError(getApiErrorMessage(err));
     }
-  }, [checkBudgetWarnings]);
+  }, [checkBudgetWarnings, selectedWalletId]);
 
   // Listen for sync events
   useEffect(() => {
@@ -320,6 +338,14 @@ export default function HomeScreen() {
   ) => {
     setError("");
 
+    const walletIdToUse = selectedWalletId ?? defaultWalletId;
+    if (!walletIdToUse) {
+      setError(
+        "No default wallet found. Please create a wallet and set it as default before adding transactions.",
+      );
+      return;
+    }
+
     const categoryId = categoryIdByTypeAndName.get(
       `${type}:${category.toLowerCase()}`,
     );
@@ -331,6 +357,7 @@ export default function HomeScreen() {
     try {
       await transactionService.createTransaction({
         category_id: categoryId,
+        wallet_id: walletIdToUse,
         amount,
         transaction_date: formatDateYYYYMMDD(date),
         description: "",
@@ -339,7 +366,14 @@ export default function HomeScreen() {
       setModalVisible(false);
       setRefreshKey((k) => k + 1);
     } catch (e) {
-      setError(getApiErrorMessage(e));
+      const msg = getApiErrorMessage(e);
+      if (msg.toLowerCase().includes("wallet_id is required")) {
+        setError(
+          "Missing wallet. Please create a wallet and set it as default, then try again.",
+        );
+      } else {
+        setError(msg);
+      }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   };
@@ -451,11 +485,71 @@ export default function HomeScreen() {
                 {userName || "-"}
               </Text>
             </View>
-            <TouchableOpacity className="bg-blue-100 p-2 rounded-full">
-              <Wallet size={24} color="#2563eb" />
+            <TouchableOpacity
+              className="bg-blue-100 px-3 py-2 rounded-full flex-row items-center"
+              onPress={() => setWalletPickerVisible(true)}
+            >
+              <Wallet size={20} color="#2563eb" />
+              <Text className="ml-2 text-blue-700 font-semibold">
+                {selectedWalletLabel}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
+
+        <Modal
+          visible={walletPickerVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setWalletPickerVisible(false)}
+        >
+          <Pressable
+            className="flex-1 bg-black/40 justify-center px-6"
+            onPress={() => setWalletPickerVisible(false)}
+          >
+            <Pressable className="bg-white rounded-2xl overflow-hidden">
+              <View className="px-5 py-4 border-b border-gray-100">
+                <Text className="text-base font-bold text-gray-900">
+                  Select wallet
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                className="px-5 py-4 flex-row items-center justify-between"
+                onPress={() => {
+                  setSelectedWalletId(null);
+                  setWalletPickerVisible(false);
+                }}
+              >
+                <Text className="text-gray-900 font-semibold">All wallets</Text>
+                {selectedWalletId === null ? (
+                  <Text className="text-blue-600 font-semibold">Selected</Text>
+                ) : null}
+              </TouchableOpacity>
+
+              {(wallets || []).map((w) => (
+                <TouchableOpacity
+                  key={String(w.id)}
+                  className="px-5 py-4 border-t border-gray-100 flex-row items-center justify-between"
+                  onPress={() => {
+                    setSelectedWalletId(w.id);
+                    setWalletPickerVisible(false);
+                  }}
+                >
+                  <View>
+                    <Text className="text-gray-900 font-semibold">{w.name}</Text>
+                    <Text className="text-gray-500 text-xs">
+                      {formatCurrency(Number(w.balance) || 0)}
+                    </Text>
+                  </View>
+                  {selectedWalletId === w.id ? (
+                    <Text className="text-blue-600 font-semibold">Selected</Text>
+                  ) : null}
+                </TouchableOpacity>
+              ))}
+            </Pressable>
+          </Pressable>
+        </Modal>
 
         {/* Financial Overview Cards */}
         <View className="px-6 py-6">
