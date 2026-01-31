@@ -193,7 +193,7 @@ export default function SettingsScreen() {
           {/* App Info */}
           <View className="items-center py-6">
             <Text className="text-sm text-gray-500">Phiên bản 1.0.0</Text>
-            <Text className="text-xs text-gray-400 mt-1">© 2026 Finance App</Text>
+            <Text className="text-xs text-gray-400 mt-1">© 2026 Ứng dụng Tài chính</Text>
           </View>
         </View>
       </ScrollView>

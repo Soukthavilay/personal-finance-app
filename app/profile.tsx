@@ -209,7 +209,7 @@ export default function ProfileScreen() {
                       language === "vi" ? "text-white" : "text-gray-900"
                     }`}
                   >
-                    VI
+                    Việt
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -225,7 +225,7 @@ export default function ProfileScreen() {
                       language === "en" ? "text-white" : "text-gray-900"
                     }`}
                   >
-                    EN
+                    Anh
                   </Text>
                 </TouchableOpacity>
               </View>
