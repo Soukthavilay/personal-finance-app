@@ -140,10 +140,10 @@ export default function WalletsScreen() {
   };
 
   const deleteWallet = async (walletId: number) => {
-    Alert.alert("Delete wallet", "Are you sure you want to delete this wallet?", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert("Xoá ví", "Bạn có chắc muốn xoá ví này không?", [
+      { text: "Huỷ", style: "cancel" },
       {
-        text: "Delete",
+        text: "Xoá",
         style: "destructive",
         onPress: async () => {
           setError("");
@@ -174,18 +174,18 @@ export default function WalletsScreen() {
         >
           <ArrowLeft size={20} color="#111827" />
           <Text className="ml-2 text-base font-semibold text-gray-900">
-            Back
+            Quay lại
           </Text>
         </TouchableOpacity>
 
-        <Text className="text-lg font-bold text-gray-900">Wallets</Text>
+        <Text className="text-lg font-bold text-gray-900">Ví</Text>
 
         <TouchableOpacity
           onPress={openCreate}
           className="bg-blue-600 px-3 py-2 rounded-xl flex-row items-center"
         >
           <Plus size={18} color="#ffffff" />
-          <Text className="ml-2 text-white font-semibold">Add</Text>
+          <Text className="ml-2 text-white font-semibold">Thêm</Text>
         </TouchableOpacity>
       </View>
 
@@ -198,13 +198,13 @@ export default function WalletsScreen() {
       <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
         <View className="px-6 py-4">
           <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-            Your wallets
+            Danh sách ví
           </Text>
 
           <View className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
             {(wallets || []).length === 0 ? (
               <View className="px-4 py-6">
-                <Text className="text-gray-600">No wallets found.</Text>
+                <Text className="text-gray-600">Chưa có ví nào.</Text>
               </View>
             ) : null}
 
@@ -224,7 +224,7 @@ export default function WalletsScreen() {
                         {isDefault ? (
                           <View className="ml-2 bg-green-100 px-2 py-0.5 rounded-full">
                             <Text className="text-green-700 text-xs font-semibold">
-                              Default
+                              Mặc định
                             </Text>
                           </View>
                         ) : null}
@@ -272,7 +272,7 @@ export default function WalletsScreen() {
           </View>
 
           {loading ? (
-            <Text className="text-gray-500 mt-4">Loading...</Text>
+            <Text className="text-gray-500 mt-4">Đang tải...</Text>
           ) : null}
         </View>
       </ScrollView>
@@ -287,23 +287,23 @@ export default function WalletsScreen() {
           <View className="bg-white rounded-2xl overflow-hidden">
             <View className="px-5 py-4 border-b border-gray-100">
               <Text className="text-base font-bold text-gray-900">
-                {form.id ? "Edit wallet" : "New wallet"}
+                {form.id ? "Chỉnh sửa ví" : "Thêm ví"}
               </Text>
             </View>
 
             <View className="px-5 py-4">
               <Text className="text-xs font-semibold text-gray-500 mb-1">
-                Name
+                Tên ví
               </Text>
               <TextInput
                 value={form.name}
                 onChangeText={(v) => setForm((s) => ({ ...s, name: v }))}
                 className="border border-gray-200 rounded-xl px-4 py-3"
-                placeholder="Cash"
+                placeholder="Tiền mặt"
               />
 
               <Text className="text-xs font-semibold text-gray-500 mb-1 mt-4">
-                Type
+                Loại
               </Text>
               <TextInput
                 value={form.type}
@@ -313,7 +313,7 @@ export default function WalletsScreen() {
               />
 
               <Text className="text-xs font-semibold text-gray-500 mb-1 mt-4">
-                Currency
+                Tiền tệ
               </Text>
               <TextInput
                 value={form.currency}
@@ -323,7 +323,7 @@ export default function WalletsScreen() {
               />
 
               <Text className="text-xs font-semibold text-gray-500 mb-1 mt-4">
-                Balance
+                Số dư
               </Text>
               <TextInput
                 value={form.balance}
@@ -341,7 +341,7 @@ export default function WalletsScreen() {
                 className="px-4 py-2 rounded-xl bg-gray-100 mr-2"
                 style={{ opacity: loading ? 0.6 : 1 }}
               >
-                <Text className="text-gray-900 font-semibold">Cancel</Text>
+                <Text className="text-gray-900 font-semibold">Huỷ</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -350,7 +350,7 @@ export default function WalletsScreen() {
                 className="px-4 py-2 rounded-xl bg-blue-600"
                 style={{ opacity: loading ? 0.6 : 1 }}
               >
-                <Text className="text-white font-semibold">Save</Text>
+                <Text className="text-white font-semibold">Lưu</Text>
               </TouchableOpacity>
             </View>
           </View>

@@ -188,12 +188,12 @@ export default function BudgetsScreen() {
 
   const handleAddBudget = async () => {
     if (!selectedCategory || !budgetAmount) {
-      Alert.alert("Error", "Please select category and enter amount");
+      Alert.alert("Lỗi", "Vui lòng chọn danh mục và nhập số tiền");
       return;
     }
 
     if (!selectedWalletId) {
-      Alert.alert("Error", "Please select a wallet first");
+      Alert.alert("Lỗi", "Vui lòng chọn ví trước");
       return;
     }
 
@@ -201,7 +201,7 @@ export default function BudgetsScreen() {
       setLoading(true);
       const category = categories.find(c => c.name === selectedCategory);
       if (!category) {
-        throw new Error("Category not found");
+        throw new Error("Không tìm thấy danh mục");
       }
 
       await budgetService.createBudget({
@@ -224,12 +224,12 @@ export default function BudgetsScreen() {
 
   const handleDeleteBudget = async (budgetId: number) => {
     Alert.alert(
-      "Delete Budget",
-      "Are you sure you want to delete this budget?",
+      "Xoá ngân sách",
+      "Bạn có chắc muốn xoá ngân sách này không?",
       [
-        { text: "Cancel", style: "cancel" },
+        { text: "Huỷ", style: "cancel" },
         {
-          text: "Delete",
+          text: "Xoá",
           style: "destructive",
           onPress: async () => {
             try {
@@ -279,7 +279,7 @@ export default function BudgetsScreen() {
       <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
         {/* Header */}
         <View className="bg-white border-b border-gray-100 px-6 py-4">
-          <Text className="text-2xl font-bold text-gray-900">Budget Management</Text>
+          <Text className="text-2xl font-bold text-gray-900">Quản lý ngân sách</Text>
         </View>
 
         <View className="p-4">
@@ -289,20 +289,20 @@ export default function BudgetsScreen() {
               <View className="flex-row items-center justify-between mb-2">
                 <Target size={20} color="#3B82F6" />
                 <Text className="text-xs text-blue-600 font-medium">
-                  {overallPercentage.toFixed(0)}% used
+                  {overallPercentage.toFixed(0)}% đã dùng
                 </Text>
               </View>
               <Text className="text-blue-900 text-xl font-bold">
                 {formatCurrency(isNaN(totalBudget) ? 0 : totalBudget, displayCurrency)}
               </Text>
-              <Text className="text-blue-700 text-sm mt-1">Total Budget</Text>
+              <Text className="text-blue-700 text-sm mt-1">Tổng ngân sách</Text>
             </View>
 
             <View className="bg-green-50 border border-green-200 rounded-2xl p-4">
               <View className="flex-row items-center justify-between mb-2">
                 <TrendingUp size={20} color="#10B981" />
                 <Text className="text-xs text-green-600 font-medium">
-                  {totalRemaining >= 0 ? 'On Track' : 'Over Budget'}
+                  {totalRemaining >= 0 ? 'Đúng kế hoạch' : 'Vượt ngân sách'}
                 </Text>
               </View>
               <Text className={`text-xl font-bold ${
@@ -316,7 +316,7 @@ export default function BudgetsScreen() {
               <Text className={`text-sm mt-1 ${
                 totalRemaining < 0 ? 'text-red-700' : 'text-green-700'
               }`}>
-                {totalRemaining < 0 ? 'Over Budget' : 'Remaining'}
+                {totalRemaining < 0 ? 'Vượt ngân sách' : 'Còn lại'}
               </Text>
             </View>
           </View>
@@ -327,16 +327,16 @@ export default function BudgetsScreen() {
             className="bg-blue-600 rounded-2xl p-4 mb-6 flex-row items-center justify-center"
           >
             <Plus size={20} color="#ffffff" />
-            <Text className="text-white font-semibold ml-2">Add New Budget</Text>
+            <Text className="text-white font-semibold ml-2">Thêm ngân sách mới</Text>
           </TouchableOpacity>
 
           {/* Add Budget Form */}
           {showAddBudget && (
             <View className="bg-white rounded-2xl border border-gray-100 p-4 mb-6">
-              <Text className="text-lg font-semibold text-gray-900 mb-4">Create New Budget</Text>
+              <Text className="text-lg font-semibold text-gray-900 mb-4">Tạo ngân sách mới</Text>
               
               <View className="mb-4">
-                <Text className="text-sm font-medium text-gray-700 mb-2">Category</Text>
+                <Text className="text-sm font-medium text-gray-700 mb-2">Danh mục</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <View className="flex-row gap-2">
                     {categories.map((cat) => (
@@ -361,18 +361,18 @@ export default function BudgetsScreen() {
               </View>
 
               <View className="mb-4">
-                <Text className="text-sm font-medium text-gray-700 mb-2">Budget Amount</Text>
+                <Text className="text-sm font-medium text-gray-700 mb-2">Số tiền ngân sách</Text>
                 <TextInput
                   value={budgetAmount}
                   onChangeText={setBudgetAmount}
                   keyboardType="numeric"
-                  placeholder="Enter amount"
+                  placeholder="Nhập số tiền"
                   className="border border-gray-200 rounded-xl px-4 py-3"
                 />
               </View>
 
               <View className="mb-4">
-                <Text className="text-sm font-medium text-gray-700 mb-2">Period</Text>
+                <Text className="text-sm font-medium text-gray-700 mb-2">Kỳ</Text>
                 <TextInput
                   value={budgetPeriod}
                   onChangeText={setBudgetPeriod}
@@ -386,14 +386,14 @@ export default function BudgetsScreen() {
                   onPress={() => setShowAddBudget(false)}
                   className="flex-1 bg-gray-200 rounded-xl px-4 py-3"
                 >
-                  <Text className="text-gray-800 text-center font-semibold">Cancel</Text>
+                  <Text className="text-gray-800 text-center font-semibold">Huỷ</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={handleAddBudget}
                   disabled={loading}
                   className="flex-1 bg-blue-600 rounded-xl px-4 py-3"
                 >
-                  <Text className="text-white text-center font-semibold">Create Budget</Text>
+                  <Text className="text-white text-center font-semibold">Tạo ngân sách</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -402,7 +402,7 @@ export default function BudgetsScreen() {
           {/* Budget Chart */}
           {budgets.length > 0 && (
             <View className="bg-white rounded-2xl border border-gray-100 p-4 mb-6">
-              <Text className="text-sm font-semibold text-gray-700 mb-3">Spending Overview</Text>
+              <Text className="text-sm font-semibold text-gray-700 mb-3">Tổng quan chi tiêu</Text>
               <BarChart
                 data={chartData}
                 width={screenWidth - 64}
@@ -428,13 +428,13 @@ export default function BudgetsScreen() {
                     onPress={() => handleDeleteBudget(budget.id)}
                     className="text-red-500"
                   >
-                    <Text className="text-sm font-medium">Delete</Text>
+                    <Text className="text-sm font-medium">Xoá</Text>
                   </TouchableOpacity>
                 </View>
 
                 <View className="mb-2">
                   <View className="flex-row justify-between text-sm mb-1">
-                    <Text className="text-gray-600">Spent: {formatCurrency(budget.spent, displayCurrency)}</Text>
+                    <Text className="text-gray-600">Đã chi: {formatCurrency(budget.spent, displayCurrency)}</Text>
                     <Text className="text-gray-600">{formatCurrency(budget.amount, displayCurrency)}</Text>
                   </View>
                   <View className="w-full bg-gray-200 rounded-full h-2">
@@ -450,7 +450,7 @@ export default function BudgetsScreen() {
                     budget.percentage > 90 ? 'text-red-600' :
                     budget.percentage > 70 ? 'text-yellow-600' : 'text-green-600'
                   }`}>
-                    {budget.percentage.toFixed(0)}% used • {formatCurrency(budget.remaining, displayCurrency)} left
+                    {budget.percentage.toFixed(0)}% đã dùng • Còn {formatCurrency(budget.remaining, displayCurrency)}
                   </Text>
                 </View>
               </View>
@@ -461,7 +461,7 @@ export default function BudgetsScreen() {
             <View className="items-center py-12">
               <Target size={48} color="#D1D5DB" />
               <Text className="text-gray-500 text-center mt-4">
-                No budgets yet. Create your first budget to start tracking your spending!
+                Chưa có ngân sách. Hãy tạo ngân sách đầu tiên để theo dõi chi tiêu!
               </Text>
             </View>
           )}

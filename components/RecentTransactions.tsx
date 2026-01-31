@@ -63,7 +63,7 @@ export function RecentTransactions({ transactions, currency }: RecentTransaction
     return (
       <View className="mx-6 mb-6 p-6 bg-white rounded-2xl items-center justify-center border border-gray-100 border-dashed">
         <Text className="text-gray-400 font-medium">
-          No recent transactions
+          Chưa có giao dịch gần đây
         </Text>
       </View>
     );
@@ -72,7 +72,7 @@ export function RecentTransactions({ transactions, currency }: RecentTransaction
   return (
     <View className="mx-6 mb-6">
       <Text className="text-lg font-bold text-gray-800 mb-4">
-        Recent Transactions
+        Giao dịch gần đây
       </Text>
       <View className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         {transactions.map((transaction, index) => {

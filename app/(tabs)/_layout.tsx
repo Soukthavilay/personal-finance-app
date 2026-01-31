@@ -20,7 +20,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Dashboard",
+          title: "Trang chủ",
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="house.fill" color={color} />
           ),
@@ -29,7 +29,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="transactions"
         options={{
-          title: "Transactions",
+          title: "Giao dịch",
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="list.bullet" color={color} />
           ),
@@ -38,7 +38,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="budgets"
         options={{
-          title: "Budgets",
+          title: "Ngân sách",
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="dollarsign.circle" color={color} />
           ),
@@ -47,7 +47,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="categories"
         options={{
-          title: "Categories",
+          title: "Danh mục",
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="tag" color={color} />
           ),
@@ -56,7 +56,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="settings"
         options={{
-          title: "Settings",
+          title: "Cài đặt",
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="gearshape.fill" color={color} />
           ),

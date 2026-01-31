@@ -27,7 +27,7 @@ export default function ResetPasswordScreen() {
         token,
         newPassword,
       });
-      setSuccess(res.message || "Password reset successfully");
+      setSuccess(res.message || "Đặt lại mật khẩu thành công");
     } catch (e) {
       setError(getApiErrorMessage(e));
     } finally {
@@ -40,10 +40,10 @@ export default function ResetPasswordScreen() {
       <View className="flex-1 p-6 justify-center gap-5">
         <View className="gap-1">
           <Text className="text-3xl font-bold text-gray-900">
-            Reset password
+            Đặt lại mật khẩu
           </Text>
           <Text className="text-sm text-gray-600">
-            Paste the reset token and set a new password.
+            Dán mã đặt lại và nhập mật khẩu mới.
           </Text>
         </View>
 
@@ -67,20 +67,20 @@ export default function ResetPasswordScreen() {
               onChangeText={setToken}
               autoCapitalize="none"
               className="border border-gray-200 rounded-xl px-4 py-3"
-              placeholder="reset token"
+              placeholder="mã đặt lại"
             />
           </View>
 
           <View className="gap-2">
             <Text className="text-xs font-medium text-gray-600">
-              New password
+              Mật khẩu mới
             </Text>
             <TextInput
               value={newPassword}
               onChangeText={setNewPassword}
               secureTextEntry
               className="border border-gray-200 rounded-xl px-4 py-3"
-              placeholder="new password"
+              placeholder="mật khẩu mới"
             />
           </View>
 
@@ -103,7 +103,7 @@ export default function ResetPasswordScreen() {
             style={{ opacity: loading ? 0.6 : 1 }}
           >
             <Text className="text-white text-center font-semibold">
-              {loading ? "Submitting..." : "Reset password"}
+              {loading ? "Đang gửi..." : "Đặt lại mật khẩu"}
             </Text>
           </TouchableOpacity>
 
@@ -114,7 +114,7 @@ export default function ResetPasswordScreen() {
             style={{ opacity: loading ? 0.6 : 1 }}
           >
             <Text className="text-white text-center font-semibold">
-              Back to login
+              Quay lại đăng nhập
             </Text>
           </TouchableOpacity>
 
@@ -125,7 +125,7 @@ export default function ResetPasswordScreen() {
             style={{ opacity: loading ? 0.6 : 1 }}
           >
             <Text className="text-gray-900 text-center font-semibold">
-              Back to forgot password
+              Quay lại quên mật khẩu
             </Text>
           </TouchableOpacity>
         </View>

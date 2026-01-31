@@ -66,7 +66,7 @@ export default function CategoriesScreen() {
 
   const handleAddCategory = async () => {
     if (!categoryName.trim()) {
-      Alert.alert("Error", "Please enter category name");
+      Alert.alert("Lỗi", "Vui lòng nhập tên danh mục");
       return;
     }
 
@@ -91,7 +91,7 @@ export default function CategoriesScreen() {
 
   const handleUpdateCategory = async () => {
     if (!editingCategory || !categoryName.trim()) {
-      Alert.alert("Error", "Please enter category name");
+      Alert.alert("Lỗi", "Vui lòng nhập tên danh mục");
       return;
     }
 
@@ -120,20 +120,20 @@ export default function CategoriesScreen() {
     
     if (isUsed) {
       Alert.alert(
-        "Cannot Delete",
-        "This category is being used in transactions and cannot be deleted.",
+        "Không thể xoá",
+        "Danh mục này đang được sử dụng trong giao dịch và không thể xoá.",
         [{ text: "OK" }]
       );
       return;
     }
 
     Alert.alert(
-      "Delete Category",
-      `Are you sure you want to delete "${category.name}"?`,
+      "Xoá danh mục",
+      `Bạn có chắc muốn xoá "${category.name}" không?`,
       [
-        { text: "Cancel", style: "cancel" },
+        { text: "Huỷ", style: "cancel" },
         {
-          text: "Delete",
+          text: "Xoá",
           style: "destructive",
           onPress: async () => {
             try {
@@ -171,7 +171,7 @@ export default function CategoriesScreen() {
       <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
         {/* Header */}
         <View className="bg-white border-b border-gray-100 px-6 py-4">
-          <Text className="text-2xl font-bold text-gray-900">Categories</Text>
+          <Text className="text-2xl font-bold text-gray-900">Danh mục</Text>
         </View>
 
         <View className="p-4">
@@ -181,28 +181,28 @@ export default function CategoriesScreen() {
             className="bg-blue-600 rounded-2xl p-4 mb-6 flex-row items-center justify-center"
           >
             <Plus size={20} color="#ffffff" />
-            <Text className="text-white font-semibold ml-2">Add New Category</Text>
+            <Text className="text-white font-semibold ml-2">Thêm danh mục mới</Text>
           </TouchableOpacity>
 
           {/* Add/Edit Form */}
           {showAddForm && (
             <View className="bg-white rounded-2xl border border-gray-100 p-4 mb-6">
               <Text className="text-lg font-semibold text-gray-900 mb-4">
-                {editingCategory ? 'Edit Category' : 'Create New Category'}
+                {editingCategory ? 'Chỉnh sửa danh mục' : 'Tạo danh mục mới'}
               </Text>
               
               <View className="mb-4">
-                <Text className="text-sm font-medium text-gray-700 mb-2">Category Name</Text>
+                <Text className="text-sm font-medium text-gray-700 mb-2">Tên danh mục</Text>
                 <TextInput
                   value={categoryName}
                   onChangeText={setCategoryName}
-                  placeholder="e.g. Coffee, Salary, Rent"
+                  placeholder="vd: Cà phê, Lương, Tiền nhà"
                   className="border border-gray-200 rounded-xl px-4 py-3"
                 />
               </View>
 
               <View className="mb-4">
-                <Text className="text-sm font-medium text-gray-700 mb-2">Type</Text>
+                <Text className="text-sm font-medium text-gray-700 mb-2">Loại</Text>
                 <View className="flex-row gap-3">
                   <TouchableOpacity
                     onPress={() => setCategoryType("income")}
@@ -213,7 +213,7 @@ export default function CategoriesScreen() {
                     <Text className={`text-center font-semibold ${
                       categoryType === "income" ? "text-green-800" : "text-gray-700"
                     }`}>
-                      Income
+                      Thu nhập
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -225,7 +225,7 @@ export default function CategoriesScreen() {
                     <Text className={`text-center font-semibold ${
                       categoryType === "expense" ? "text-red-800" : "text-gray-700"
                     }`}>
-                      Expense
+                      Chi tiêu
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -236,7 +236,7 @@ export default function CategoriesScreen() {
                   onPress={cancelForm}
                   className="flex-1 bg-gray-200 rounded-xl px-4 py-3"
                 >
-                  <Text className="text-gray-800 text-center font-semibold">Cancel</Text>
+                  <Text className="text-gray-800 text-center font-semibold">Huỷ</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={editingCategory ? handleUpdateCategory : handleAddCategory}
@@ -244,7 +244,7 @@ export default function CategoriesScreen() {
                   className="flex-1 bg-blue-600 rounded-xl px-4 py-3"
                 >
                   <Text className="text-white text-center font-semibold">
-                    {editingCategory ? 'Update' : 'Create'}
+                    {editingCategory ? 'Cập nhật' : 'Tạo'}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -255,13 +255,13 @@ export default function CategoriesScreen() {
           <View className="mb-6">
             <View className="flex-row items-center mb-3">
               <Tag size={20} color="#10B981" />
-              <Text className="text-lg font-semibold text-gray-900 ml-2">Income Categories</Text>
+              <Text className="text-lg font-semibold text-gray-900 ml-2">Danh mục thu nhập</Text>
               <Text className="text-sm text-gray-500 ml-2">({incomeCategories.length})</Text>
             </View>
             
             {incomeCategories.length === 0 ? (
               <View className="bg-white rounded-2xl border border-gray-100 p-6 items-center">
-                <Text className="text-gray-500 text-center">No income categories yet</Text>
+                <Text className="text-gray-500 text-center">Chưa có danh mục thu nhập</Text>
               </View>
             ) : (
               <View className="space-y-2">
@@ -272,7 +272,7 @@ export default function CategoriesScreen() {
                         <View className="w-3 h-3 rounded-full bg-green-500 mr-3" />
                         <View>
                           <Text className="font-semibold text-gray-900">{category.name}</Text>
-                          <Text className="text-sm text-green-600">Income</Text>
+                          <Text className="text-sm text-green-600">Thu nhập</Text>
                         </View>
                       </View>
                       <View className="flex-row gap-2">
@@ -300,13 +300,13 @@ export default function CategoriesScreen() {
           <View className="mb-6">
             <View className="flex-row items-center mb-3">
               <Tag size={20} color="#EF4444" />
-              <Text className="text-lg font-semibold text-gray-900 ml-2">Expense Categories</Text>
+              <Text className="text-lg font-semibold text-gray-900 ml-2">Danh mục chi tiêu</Text>
               <Text className="text-sm text-gray-500 ml-2">({expenseCategories.length})</Text>
             </View>
             
             {expenseCategories.length === 0 ? (
               <View className="bg-white rounded-2xl border border-gray-100 p-6 items-center">
-                <Text className="text-gray-500 text-center">No expense categories yet</Text>
+                <Text className="text-gray-500 text-center">Chưa có danh mục chi tiêu</Text>
               </View>
             ) : (
               <View className="space-y-2">
@@ -317,7 +317,7 @@ export default function CategoriesScreen() {
                         <View className="w-3 h-3 rounded-full bg-red-500 mr-3" />
                         <View>
                           <Text className="font-semibold text-gray-900">{category.name}</Text>
-                          <Text className="text-sm text-red-600">Expense</Text>
+                          <Text className="text-sm text-red-600">Chi tiêu</Text>
                         </View>
                       </View>
                       <View className="flex-row gap-2">

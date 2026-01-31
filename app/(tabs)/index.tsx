@@ -89,7 +89,7 @@ export default function HomeScreen() {
   const selectedWalletLabel = useMemo(() => {
     const resolvedWalletId = selectedWalletId ?? defaultWalletId;
     const w = wallets.find((x) => x.id === resolvedWalletId);
-    return w?.name || "Wallet";
+    return w?.name || "Ví";
   }, [defaultWalletId, selectedWalletId, wallets]);
 
   const displayCurrency = useMemo(() => {
@@ -387,7 +387,7 @@ export default function HomeScreen() {
     const walletIdToUse = selectedWalletId ?? defaultWalletId;
     if (!walletIdToUse) {
       setError(
-        "No default wallet found. Please create a wallet and set it as default before adding transactions.",
+        "Chưa có ví mặc định. Vui lòng tạo ví và đặt làm mặc định trước khi thêm giao dịch.",
       );
       return;
     }
@@ -396,7 +396,7 @@ export default function HomeScreen() {
       `${type}:${category.toLowerCase()}`,
     );
     if (!categoryId) {
-      setError(`Category not found on backend: ${category}`);
+      setError(`Không tìm thấy danh mục trên hệ thống: ${category}`);
       return;
     }
 
@@ -416,7 +416,7 @@ export default function HomeScreen() {
       const msg = getApiErrorMessage(e);
       if (msg.toLowerCase().includes("wallet_id is required")) {
         setError(
-          "Missing wallet. Please create a wallet and set it as default, then try again.",
+          "Thiếu ví. Vui lòng tạo ví và đặt làm mặc định, sau đó thử lại.",
         );
       } else {
         setError(msg);
@@ -526,7 +526,7 @@ export default function HomeScreen() {
           <View className="flex-row items-center justify-between">
             <View>
               <Text className="text-sm text-gray-500 font-medium">
-                Welcome back
+                Xin chào
               </Text>
               <Text className="text-2xl font-bold text-gray-900 tracking-tight">
                 {userName || "-"}
@@ -557,7 +557,7 @@ export default function HomeScreen() {
             <Pressable className="bg-white rounded-2xl overflow-hidden">
               <View className="px-5 py-4 border-b border-gray-100">
                 <Text className="text-base font-bold text-gray-900">
-                  Select wallet
+                  Chọn ví
                 </Text>
               </View>
 
@@ -577,7 +577,7 @@ export default function HomeScreen() {
                     </Text>
                   </View>
                   {selectedWalletId === w.id ? (
-                    <Text className="text-blue-600 font-semibold">Selected</Text>
+                    <Text className="text-blue-600 font-semibold">Đang chọn</Text>
                   ) : null}
                 </TouchableOpacity>
               ))}
@@ -592,7 +592,7 @@ export default function HomeScreen() {
             <View className="col-span-2 bg-gradient-to-r from-blue-500 to-blue-600 rounded-3xl p-6 shadow-xl">
               <View className="flex-row items-center justify-between mb-4">
                 <Text className="text-black text-base font-medium">
-                  Total Balance
+                  Tổng số dư
                 </Text>
                 <Wallet size={20} />
               </View>
@@ -602,7 +602,7 @@ export default function HomeScreen() {
               <View className="flex-row items-center">
                 <TrendingUp size={16} color="#10B981" />
                 <Text className="text-green-300 ml-2 text-sm font-medium">
-                  +{savingsRate.toFixed(1)}% savings rate
+                  +{savingsRate.toFixed(1)}% tỷ lệ tiết kiệm
                 </Text>
               </View>
             </View>
@@ -616,7 +616,7 @@ export default function HomeScreen() {
               <Text className="text-green-900 text-xl font-bold">
                 {formatCurrency(totalIncome, displayCurrency)}
               </Text>
-              <Text className="text-green-700 text-sm mt-1">Income</Text>
+              <Text className="text-green-700 text-sm mt-1">Thu nhập</Text>
             </View>
 
             {/* Expense Card */}
@@ -628,7 +628,7 @@ export default function HomeScreen() {
               <Text className="text-red-900 text-xl font-bold">
                 {formatCurrency(totalExpense, displayCurrency)}
               </Text>
-              <Text className="text-red-700 text-sm mt-1">Expenses</Text>
+              <Text className="text-red-700 text-sm mt-1">Chi tiêu</Text>
             </View>
 
             {/* Savings Card */}
@@ -636,13 +636,13 @@ export default function HomeScreen() {
               <View className="flex-row items-center justify-between mb-2">
                 <PiggyBank size={20} color="#8B5CF6" />
                 <Text className="text-xs text-purple-600 font-medium">
-                  {savingsRate > 0 ? 'Good' : 'Low'}
+                  {savingsRate > 0 ? 'Tốt' : 'Thấp'}
                 </Text>
               </View>
               <Text className="text-purple-900 text-xl font-bold">
                 {formatCurrency(totalSavings, displayCurrency)}
               </Text>
-              <Text className="text-purple-700 text-sm mt-1">Savings</Text>
+              <Text className="text-purple-700 text-sm mt-1">Tiết kiệm</Text>
             </View>
 
             {/* Budget Card */}
@@ -653,7 +653,7 @@ export default function HomeScreen() {
                   budgetUsedPercentage > 90 ? 'text-red-600' : 
                   budgetUsedPercentage > 70 ? 'text-yellow-600' : 'text-green-600'
                 }`}>
-                  {budgetUsedPercentage.toFixed(0)}% used
+                  {budgetUsedPercentage.toFixed(0)}% đã dùng
                 </Text>
               </View>
               <Text className={`text-xl font-bold ${
@@ -664,7 +664,7 @@ export default function HomeScreen() {
               <Text className={`text-sm mt-1 ${
                 budgetRemaining < 0 ? 'text-red-700' : 'text-yellow-700'
               }`}>
-                {budgetRemaining < 0 ? 'Over Budget' : 'Budget Left'}
+                {budgetRemaining < 0 ? 'Vượt ngân sách' : 'Ngân sách còn lại'}
               </Text>
             </View>
 
@@ -673,20 +673,20 @@ export default function HomeScreen() {
               <View className="flex-row items-center justify-between mb-2">
                 <Target size={20} color="#F59E0B" />
                 <Text className="text-xs text-orange-600 font-medium">
-                  {savingsRate >= 20 ? 'Excellent' : savingsRate >= 10 ? 'Good' : 'Needs Work'}
+                  {savingsRate >= 20 ? 'Rất tốt' : savingsRate >= 10 ? 'Tốt' : 'Cần cải thiện'}
                 </Text>
               </View>
               <Text className="text-orange-900 text-xl font-bold">
                 {savingsRate.toFixed(1)}%
               </Text>
-              <Text className="text-orange-700 text-sm mt-1">Savings Rate</Text>
+              <Text className="text-orange-700 text-sm mt-1">Tỷ lệ tiết kiệm</Text>
             </View>
           </View>
 
           {/* Quick Actions */}
           <View className="mb-6">
             <Text className="text-lg font-bold text-gray-800 mb-4 tracking-tight">
-              Quick Actions
+              Thao tác nhanh
             </Text>
             <View className="flex-row justify-between">
               <TouchableOpacity
@@ -697,7 +697,7 @@ export default function HomeScreen() {
                   <DollarSign size={24} color="#16a34a" />
                 </View>
                 <Text className="text-gray-900 font-semibold text-base">
-                  Add Income
+                  Thêm thu nhập
                 </Text>
               </TouchableOpacity>
 
@@ -709,7 +709,7 @@ export default function HomeScreen() {
                   <CreditCard size={24} color="#dc2626" />
                 </View>
                 <Text className="text-gray-900 font-semibold text-base">
-                  Add Expense
+                  Thêm chi tiêu
                 </Text>
               </TouchableOpacity>
             </View>
@@ -718,7 +718,7 @@ export default function HomeScreen() {
           {/* Spending by Category - Pie Chart */}
           <View className="bg-white rounded-2xl p-4 mb-6 shadow-sm border border-gray-100">
             <Text className="text-lg font-bold text-gray-800 mb-4 tracking-tight">
-              Spending by Category
+              Chi tiêu theo danh mục
             </Text>
             <PieChart
               data={pieChartData}
@@ -738,7 +738,7 @@ export default function HomeScreen() {
           {/* Category Breakdown */}
           <View className="bg-white rounded-2xl p-4 mb-6 shadow-sm border border-gray-100">
             <Text className="text-lg font-bold text-gray-800 mb-4 tracking-tight">
-              Top Categories
+              Danh mục nổi bật
             </Text>
             {categorySpending.slice(0, 4).map((cat, index) => (
               <View key={cat.name} className="flex-row items-center justify-between py-2 border-b border-gray-50 last:border-0">

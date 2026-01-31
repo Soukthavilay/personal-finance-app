@@ -57,7 +57,7 @@ export default function ProfileScreen() {
       }
 
       setFromProfile(p);
-      setStatus("Loaded");
+      setStatus("Đã tải");
       return p;
     } catch (e) {
       setStatus(getApiErrorMessage(e));
@@ -87,7 +87,7 @@ export default function ProfileScreen() {
           ? Number(monthlyIncomeTarget)
           : null,
       });
-      setStatus(res.message || "Saved");
+      setStatus(res.message || "Đã lưu");
       await loadProfile();
     } catch (e) {
       setStatus(getApiErrorMessage(e));
@@ -100,20 +100,20 @@ export default function ProfileScreen() {
     <SafeAreaView className="flex-1 bg-white">
       <View className="flex-1 p-6 gap-5">
         <View className="flex-row items-center justify-between">
-          <Text className="text-2xl font-bold text-gray-900">Profile</Text>
+          <Text className="text-2xl font-bold text-gray-900">Hồ sơ</Text>
           <TouchableOpacity
             disabled={loading}
             onPress={() => router.back()}
             className="px-3 py-2 rounded-xl bg-gray-100"
             style={{ opacity: loading ? 0.6 : 1 }}
           >
-            <Text className="text-gray-900 font-semibold text-xs">Back</Text>
+            <Text className="text-gray-900 font-semibold text-xs">Quay lại</Text>
           </TouchableOpacity>
         </View>
 
         {!profile ? (
           <View className="bg-white rounded-2xl border border-gray-100 p-4 gap-2">
-            <Text className="text-sm text-gray-600">Loading profile...</Text>
+            <Text className="text-sm text-gray-600">Đang tải hồ sơ...</Text>
             {!!status && (
               <Text className="text-xs text-gray-500">{status}</Text>
             )}
@@ -129,19 +129,19 @@ export default function ProfileScreen() {
 
             <View className="gap-2">
               <Text className="text-xs font-medium text-gray-600">
-                Full name
+                Họ và tên
               </Text>
               <TextInput
                 value={fullName}
                 onChangeText={setFullName}
                 className="border border-gray-200 rounded-xl px-4 py-3"
-                placeholder="Full name"
+                placeholder="Họ và tên"
               />
             </View>
 
             <View className="gap-2">
               <Text className="text-xs font-medium text-gray-600">
-                Currency
+                Tiền tệ
               </Text>
               <TextInput
                 value={currency}
@@ -154,7 +154,7 @@ export default function ProfileScreen() {
 
             <View className="gap-2">
               <Text className="text-xs font-medium text-gray-600">
-                Timezone
+                Múi giờ
               </Text>
               <TextInput
                 value={timezone}
@@ -167,7 +167,7 @@ export default function ProfileScreen() {
 
             <View className="gap-2">
               <Text className="text-xs font-medium text-gray-600">
-                Avatar URL
+                Link ảnh đại diện
               </Text>
               <TextInput
                 value={avatarUrl}
@@ -180,20 +180,20 @@ export default function ProfileScreen() {
 
             <View className="gap-2">
               <Text className="text-xs font-medium text-gray-600">
-                Monthly income target
+                Mục tiêu thu nhập tháng
               </Text>
               <TextInput
                 value={monthlyIncomeTarget}
                 onChangeText={setMonthlyIncomeTarget}
                 keyboardType="numeric"
                 className="border border-gray-200 rounded-xl px-4 py-3"
-                placeholder="e.g. 10000000"
+                placeholder="vd: 10000000"
               />
             </View>
 
             <View className="gap-2">
               <Text className="text-xs font-medium text-gray-600">
-                Language
+                Ngôn ngữ
               </Text>
               <View className="flex-row gap-3">
                 <TouchableOpacity
@@ -233,7 +233,7 @@ export default function ProfileScreen() {
 
             <View className="gap-2">
               <Text className="text-xs font-medium text-gray-600">
-                Date format
+                Định dạng ngày
               </Text>
               <View className="flex-row gap-3">
                 <TouchableOpacity
@@ -294,7 +294,7 @@ export default function ProfileScreen() {
 
             <View className="gap-2">
               <Text className="text-xs font-medium text-gray-600">
-                Week start day (1-7)
+                Ngày bắt đầu tuần (1-7)
               </Text>
               <TextInput
                 value={weekStartDay}
@@ -313,7 +313,7 @@ export default function ProfileScreen() {
                 style={{ opacity: loading ? 0.6 : 1 }}
               >
                 <Text className="text-white text-center font-semibold">
-                  {loading ? "Saving..." : "Save"}
+                  {loading ? "Đang lưu..." : "Lưu"}
                 </Text>
               </TouchableOpacity>
 
@@ -324,7 +324,7 @@ export default function ProfileScreen() {
                 style={{ opacity: loading ? 0.6 : 1 }}
               >
                 <Text className="text-white text-center font-semibold">
-                  Reload
+                  Tải lại
                 </Text>
               </TouchableOpacity>
             </View>

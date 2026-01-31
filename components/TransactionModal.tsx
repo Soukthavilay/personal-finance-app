@@ -103,7 +103,7 @@ export function TransactionModal({
             {/* Header */}
             <View className="flex-row justify-between items-center mb-6">
               <Text className={`text-2xl font-bold ${textColor}`}>
-                {isExpense ? "Add Expense" : "Add Income"}
+                {isExpense ? "Thêm chi tiêu" : "Thêm thu nhập"}
               </Text>
               <TouchableOpacity
                 onPress={onClose}
@@ -116,7 +116,7 @@ export function TransactionModal({
             {/* Amount Input */}
             <View className="mb-6">
               <Text className="text-gray-500 text-sm font-medium mb-2">
-                AMOUNT
+                SỐ TIỀN
               </Text>
               <View className="flex-row items-center border-b border-gray-200 py-2">
                 <Text className={`text-3xl font-bold mr-2 ${textColor}`}>
@@ -136,7 +136,7 @@ export function TransactionModal({
             {/* Category Selector */}
             <View className="mb-6">
               <Text className="text-gray-500 text-sm font-medium mb-3">
-                CATEGORY
+                DANH MỤC
               </Text>
               <View className="flex-row flex-wrap gap-2">
                 {availableCategories.map((cat) => (
@@ -164,7 +164,7 @@ export function TransactionModal({
             {/* Date Picker */}
             <View className="mb-8">
               <Text className="text-gray-500 text-sm font-medium mb-3">
-                DATE
+                NGÀY
               </Text>
               <TouchableOpacity
                 onPress={() => setShowDatePicker(true)}
@@ -203,7 +203,7 @@ export function TransactionModal({
               style={{ opacity: !amount || !category ? 0.7 : 1 }}
             >
               <Text className="text-white text-center font-bold text-lg">
-                Save Transaction
+                Lưu giao dịch
               </Text>
             </TouchableOpacity>
           </View>

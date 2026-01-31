@@ -23,7 +23,7 @@ export default function ForgotPasswordScreen() {
 
     try {
       const res = await authService.forgotPassword(email);
-      setSuccess(res.message || "Request submitted");
+      setSuccess(res.message || "Đã gửi yêu cầu");
       if (typeof res.resetToken === "string" && res.resetToken) {
         setResetToken(res.resetToken);
       }
@@ -39,10 +39,10 @@ export default function ForgotPasswordScreen() {
       <View className="flex-1 p-6 justify-center gap-5">
         <View className="gap-1">
           <Text className="text-3xl font-bold text-gray-900">
-            Forgot password
+            Quên mật khẩu
           </Text>
           <Text className="text-sm text-gray-600">
-            Enter your email to generate a reset token.
+            Nhập email để tạo mã đặt lại mật khẩu.
           </Text>
         </View>
 
@@ -74,7 +74,7 @@ export default function ForgotPasswordScreen() {
           {!!resetToken && (
             <View className="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 gap-2">
               <Text className="text-xs text-gray-500">
-                Dev token (copy/paste into Reset Password)
+                Mã (copy/paste vào màn hình Đặt lại mật khẩu)
               </Text>
               <Text className="text-sm font-semibold text-gray-900">
                 {resetToken}
@@ -89,7 +89,7 @@ export default function ForgotPasswordScreen() {
             style={{ opacity: loading ? 0.6 : 1 }}
           >
             <Text className="text-white text-center font-semibold">
-              {loading ? "Submitting..." : "Generate reset token"}
+              {loading ? "Đang gửi..." : "Tạo mã đặt lại"}
             </Text>
           </TouchableOpacity>
 
@@ -100,7 +100,7 @@ export default function ForgotPasswordScreen() {
             style={{ opacity: loading ? 0.6 : 1 }}
           >
             <Text className="text-white text-center font-semibold">
-              Go to reset password
+              Đi tới đặt lại mật khẩu
             </Text>
           </TouchableOpacity>
 
@@ -111,7 +111,7 @@ export default function ForgotPasswordScreen() {
             style={{ opacity: loading ? 0.6 : 1 }}
           >
             <Text className="text-gray-900 text-center font-semibold">
-              Back to login
+              Quay lại đăng nhập
             </Text>
           </TouchableOpacity>
         </View>

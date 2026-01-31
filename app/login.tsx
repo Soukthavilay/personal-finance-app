@@ -50,9 +50,9 @@ export default function LoginScreen() {
     <SafeAreaView className="flex-1 bg-white">
       <View className="flex-1 p-6 justify-center gap-5">
         <View className="gap-1">
-          <Text className="text-3xl font-bold text-gray-900">Welcome back</Text>
+          <Text className="text-3xl font-bold text-gray-900">Chào mừng bạn quay lại</Text>
           <Text className="text-sm text-gray-600">
-            Sign in to continue managing your finances.
+            Đăng nhập để tiếp tục quản lý tài chính của bạn.
           </Text>
         </View>
 
@@ -70,13 +70,13 @@ export default function LoginScreen() {
           </View>
 
           <View className="gap-2">
-            <Text className="text-xs font-medium text-gray-600">Password</Text>
+            <Text className="text-xs font-medium text-gray-600">Mật khẩu</Text>
             <TextInput
               value={password}
               onChangeText={setPassword}
               secureTextEntry
               className="border border-gray-200 rounded-xl px-4 py-3"
-              placeholder="password"
+              placeholder="mật khẩu"
             />
           </View>
 
@@ -93,7 +93,7 @@ export default function LoginScreen() {
             style={{ opacity: loading ? 0.6 : 1 }}
           >
             <Text className="text-white text-center font-semibold">
-              {loading ? "Signing in..." : "Login"}
+              {loading ? "Đang đăng nhập..." : "Đăng nhập"}
             </Text>
           </TouchableOpacity>
 
@@ -104,7 +104,7 @@ export default function LoginScreen() {
             style={{ opacity: loading ? 0.6 : 1 }}
           >
             <Text className="text-gray-900 text-center font-semibold">
-              Forgot password?
+              Quên mật khẩu?
             </Text>
           </TouchableOpacity>
 
@@ -115,14 +115,14 @@ export default function LoginScreen() {
             style={{ opacity: loading ? 0.6 : 1 }}
           >
             <Text className="text-white text-center font-semibold">
-              Register
+              Đăng ký
             </Text>
           </TouchableOpacity>
         </View>
 
         <View className="items-center">
           <Text className="text-xs text-gray-500">
-            If your session expires, you will be redirected here.
+            Nếu phiên đăng nhập hết hạn, bạn sẽ được chuyển về màn hình này.
           </Text>
         </View>
       </View>

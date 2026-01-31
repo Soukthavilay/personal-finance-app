@@ -22,7 +22,7 @@ export default function RegisterScreen() {
     setSuccess("");
     try {
       await authService.register(username, email, password);
-      setSuccess("Registered successfully. Please login.");
+      setSuccess("Đăng ký thành công. Vui lòng đăng nhập.");
     } catch (e) {
       setError(getApiErrorMessage(e));
     } finally {
@@ -35,22 +35,22 @@ export default function RegisterScreen() {
       <View className="flex-1 p-6 justify-center gap-5">
         <View className="gap-1">
           <Text className="text-3xl font-bold text-gray-900">
-            Create account
+            Tạo tài khoản
           </Text>
           <Text className="text-sm text-gray-600">
-            Register to start tracking your finances.
+            Đăng ký để bắt đầu theo dõi tài chính của bạn.
           </Text>
         </View>
 
         <View className="gap-3">
           <View className="gap-2">
-            <Text className="text-xs font-medium text-gray-600">Username</Text>
+            <Text className="text-xs font-medium text-gray-600">Tên người dùng</Text>
             <TextInput
               value={username}
               onChangeText={setUsername}
               autoCapitalize="none"
               className="border border-gray-200 rounded-xl px-4 py-3"
-              placeholder="username"
+              placeholder="tên người dùng"
             />
           </View>
 
@@ -67,13 +67,13 @@ export default function RegisterScreen() {
           </View>
 
           <View className="gap-2">
-            <Text className="text-xs font-medium text-gray-600">Password</Text>
+            <Text className="text-xs font-medium text-gray-600">Mật khẩu</Text>
             <TextInput
               value={password}
               onChangeText={setPassword}
               secureTextEntry
               className="border border-gray-200 rounded-xl px-4 py-3"
-              placeholder="password"
+              placeholder="mật khẩu"
             />
           </View>
 
@@ -96,7 +96,7 @@ export default function RegisterScreen() {
             style={{ opacity: loading ? 0.6 : 1 }}
           >
             <Text className="text-white text-center font-semibold">
-              {loading ? "Creating..." : "Register"}
+              {loading ? "Đang tạo..." : "Đăng ký"}
             </Text>
           </TouchableOpacity>
 
@@ -106,7 +106,7 @@ export default function RegisterScreen() {
             className="bg-gray-900 rounded-xl px-4 py-3"
             style={{ opacity: loading ? 0.6 : 1 }}
           >
-            <Text className="text-white text-center font-semibold">Login</Text>
+            <Text className="text-white text-center font-semibold">Đăng nhập</Text>
           </TouchableOpacity>
         </View>
       </View>

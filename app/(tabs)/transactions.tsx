@@ -156,7 +156,7 @@ export default function TransactionsScreen() {
     const walletIdToUse = selectedWalletId ?? defaultWalletId;
     if (!walletIdToUse) {
       setError(
-        "No default wallet found. Please create a wallet and set it as default before adding transactions.",
+        "Chưa có ví mặc định. Vui lòng tạo ví và đặt làm mặc định trước khi thêm giao dịch.",
       );
       return;
     }
@@ -164,7 +164,7 @@ export default function TransactionsScreen() {
       `${type}:${category.toLowerCase()}`,
     );
     if (!categoryId) {
-      setError(`Category not found on backend: ${category}`);
+      setError(`Không tìm thấy danh mục trên hệ thống: ${category}`);
       return;
     }
 
@@ -183,7 +183,7 @@ export default function TransactionsScreen() {
       const msg = getApiErrorMessage(e);
       if (msg.toLowerCase().includes("wallet_id is required")) {
         setError(
-          "Missing wallet. Please create a wallet and set it as default, then try again.",
+          "Thiếu ví. Vui lòng tạo ví và đặt làm mặc định, sau đó thử lại.",
         );
       } else {
         setError(msg);
@@ -197,7 +197,7 @@ export default function TransactionsScreen() {
         <View className="px-6 py-4 bg-white shadow-sm border-b border-gray-100">
           <View className="flex-row items-center justify-between">
             <Text className="text-2xl font-bold text-gray-900">
-              Transactions
+              Giao dịch
             </Text>
             <TouchableOpacity
               onPress={onRefresh}
@@ -206,7 +206,7 @@ export default function TransactionsScreen() {
               style={{ opacity: loading || refreshing ? 0.6 : 1 }}
             >
               <Text className="text-gray-800 font-semibold">
-                {refreshing ? "Refreshing" : "Refresh"}
+                {refreshing ? "Đang tải" : "Tải lại"}
               </Text>
             </TouchableOpacity>
           </View>
@@ -217,7 +217,7 @@ export default function TransactionsScreen() {
               className="flex-1 bg-green-600 rounded-xl px-4 py-3"
             >
               <Text className="text-white text-center font-semibold">
-                Add Income
+                Thêm thu nhập
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -225,13 +225,13 @@ export default function TransactionsScreen() {
               className="flex-1 bg-red-600 rounded-xl px-4 py-3"
             >
               <Text className="text-white text-center font-semibold">
-                Add Expense
+                Thêm chi tiêu
               </Text>
             </TouchableOpacity>
           </View>
 
           {loading && (
-            <Text className="text-sm text-gray-500 mt-3">Loading...</Text>
+            <Text className="text-sm text-gray-500 mt-3">Đang tải...</Text>
           )}
           {!!error && (
             <Text className="text-sm text-red-600 mt-3">{error}</Text>
@@ -241,10 +241,10 @@ export default function TransactionsScreen() {
         {!loading && transactions.length === 0 ? (
           <View className="mx-6 my-6 p-6 bg-white rounded-2xl border border-gray-100">
             <Text className="text-gray-900 font-semibold text-base">
-              No transactions yet
+              Chưa có giao dịch nào
             </Text>
             <Text className="text-gray-500 text-sm mt-1">
-              Add your first income/expense to see it here.
+              Hãy thêm giao dịch thu/chi đầu tiên để xem tại đây.
             </Text>
           </View>
         ) : (

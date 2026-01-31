@@ -67,8 +67,8 @@ export default function NotificationsScreen() {
           const { status } = await Notifications.requestPermissionsAsync();
           if (status !== "granted") {
             Alert.alert(
-              "Permission Required",
-              "Please enable notifications in your device settings to receive budget warnings.",
+              "Cần cấp quyền",
+              "Vui lòng bật quyền thông báo trong cài đặt thiết bị để nhận cảnh báo ngân sách.",
             );
             next.enabled = false;
             await persistPreferences(next);
@@ -82,7 +82,7 @@ export default function NotificationsScreen() {
               platform: Platform.OS as "ios" | "android",
             });
           } catch (tokenError) {
-            console.log("Failed to register device token:", tokenError);
+            console.log("Không thể đăng ký device token:", tokenError);
           }
         }
 
@@ -153,7 +153,7 @@ export default function NotificationsScreen() {
         const { status } = await Notifications.requestPermissionsAsync();
         
         if (status !== 'granted') {
-          Alert.alert("Permission Required", "Please enable notifications in your device settings to receive budget warnings.");
+          Alert.alert("Cần cấp quyền", "Vui lòng bật quyền thông báo trong cài đặt thiết bị để nhận cảnh báo ngân sách.");
           finalPreferences.enabled = false;
           setPreferences(finalPreferences);
           return;
@@ -167,13 +167,13 @@ export default function NotificationsScreen() {
             platform: Platform.OS as "ios" | "android"
           });
         } catch (tokenError) {
-          console.log('Failed to register device token:', tokenError);
+          console.log('Không thể đăng ký device token:', tokenError);
         }
       }
       
       await notificationService.updatePreferences(finalPreferences);
       setPreferences(finalPreferences);
-      Alert.alert("Success", "Notification preferences updated successfully!");
+      Alert.alert("Thành công", "Đã cập nhật cài đặt thông báo!");
     } catch (err) {
       setError(getApiErrorMessage(err));
     } finally {
@@ -206,7 +206,7 @@ export default function NotificationsScreen() {
     <SafeAreaView className="flex-1 bg-gray-50">
       <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
         <View className="bg-white border-b border-gray-100 px-6 py-4">
-          <Text className="text-2xl font-bold text-gray-900">Notifications</Text>
+          <Text className="text-2xl font-bold text-gray-900">Thông báo</Text>
         </View>
 
         <View className="p-4">
@@ -215,8 +215,8 @@ export default function NotificationsScreen() {
               <View className="flex-row items-center">
                 <Bell size={24} color="#3B82F6" className="mr-3" />
                 <View>
-                  <Text className="text-lg font-semibold text-gray-900">Enable Notifications</Text>
-                  <Text className="text-sm text-gray-500">Manage all notification settings</Text>
+                  <Text className="text-lg font-semibold text-gray-900">Bật thông báo</Text>
+                  <Text className="text-sm text-gray-500">Quản lý tất cả cài đặt thông báo</Text>
                 </View>
               </View>
               <Switch
@@ -234,8 +234,8 @@ export default function NotificationsScreen() {
                   <View className="flex-row items-center">
                     <Clock size={20} color="#10B981" className="mr-3" />
                     <View>
-                      <Text className="font-semibold text-gray-900">Daily Reminder</Text>
-                      <Text className="text-sm text-gray-500">Get daily spending reminder</Text>
+                      <Text className="font-semibold text-gray-900">Nhắc nhở hằng ngày</Text>
+                      <Text className="text-sm text-gray-500">Nhắc nhở chi tiêu mỗi ngày</Text>
                     </View>
                   </View>
                   <Switch
@@ -249,7 +249,7 @@ export default function NotificationsScreen() {
                 
                 {preferences.daily_reminder_enabled && (
                   <View className="border-t border-gray-100 pt-3">
-                    <Text className="text-sm font-medium text-gray-700 mb-2">Reminder Time</Text>
+                    <Text className="text-sm font-medium text-gray-700 mb-2">Giờ nhắc</Text>
                     <TouchableOpacity
                       onPress={() => setShowTimePicker(true)}
                       className="border border-gray-200 rounded-xl px-4 py-3 flex-row items-center justify-between"
@@ -266,8 +266,8 @@ export default function NotificationsScreen() {
                   <View className="flex-row items-center">
                     <TrendingUp size={20} color="#8B5CF6" className="mr-3" />
                     <View>
-                      <Text className="font-semibold text-gray-900">Daily Summary</Text>
-                      <Text className="text-sm text-gray-500">Daily spending & income report</Text>
+                      <Text className="font-semibold text-gray-900">Tổng kết hằng ngày</Text>
+                      <Text className="text-sm text-gray-500">Báo cáo thu/chi mỗi ngày</Text>
                     </View>
                   </View>
                   <Switch
@@ -285,8 +285,8 @@ export default function NotificationsScreen() {
                   <View className="flex-row items-center">
                     <AlertTriangle size={20} color="#F59E0B" className="mr-3" />
                     <View>
-                      <Text className="font-semibold text-gray-900">Budget Warnings</Text>
-                      <Text className="text-sm text-gray-500">Alert when near budget limit</Text>
+                      <Text className="font-semibold text-gray-900">Cảnh báo ngân sách</Text>
+                      <Text className="text-sm text-gray-500">Cảnh báo khi gần chạm giới hạn ngân sách</Text>
                     </View>
                   </View>
                   <Switch
@@ -303,7 +303,7 @@ export default function NotificationsScreen() {
                 <View className="flex-row items-center">
                   <Smartphone size={20} color="#6B7280" className="mr-3" />
                   <View>
-                    <Text className="font-semibold text-gray-900">Timezone</Text>
+                    <Text className="font-semibold text-gray-900">Múi giờ</Text>
                     <Text className="text-sm text-gray-500">{preferences.timezone}</Text>
                   </View>
                 </View>
@@ -316,7 +316,7 @@ export default function NotificationsScreen() {
               >
                 <Bell size={20} color="#ffffff" />
                 <Text className="text-white font-semibold ml-2">
-                  {loading ? "Saving..." : "Save Preferences"}
+                  {loading ? "Đang lưu..." : "Lưu cài đặt"}
                 </Text>
               </TouchableOpacity>
             </>
@@ -326,14 +326,14 @@ export default function NotificationsScreen() {
             <View className="flex-row items-start">
               <Bell size={20} color="#3B82F6" className="mr-3 mt-1" />
               <View className="flex-1">
-                <Text className="font-semibold text-blue-900 mb-2">About Notifications</Text>
+                <Text className="font-semibold text-blue-900 mb-2">Về thông báo</Text>
                 <Text className="text-sm text-blue-800 leading-relaxed">
-                  Stay on top of your finances with timely notifications. Get daily reminders, spending summaries, and budget alerts to help you manage your money better.
+                  Theo dõi tài chính của bạn với thông báo kịp thời. Nhận nhắc nhở hằng ngày, tổng kết chi tiêu và cảnh báo ngân sách để quản lý tiền tốt hơn.
                 </Text>
                 <View className="mt-3 space-y-1">
-                  <Text className="text-xs text-blue-700">• Daily reminders at your preferred time</Text>
-                  <Text className="text-xs text-blue-700">• Spending summaries to track your habits</Text>
-                  <Text className="text-xs text-blue-700">• Budget warnings before you overspend</Text>
+                  <Text className="text-xs text-blue-700">• Nhắc nhở hằng ngày theo giờ bạn chọn</Text>
+                  <Text className="text-xs text-blue-700">• Tổng kết chi tiêu để theo dõi thói quen</Text>
+                  <Text className="text-xs text-blue-700">• Cảnh báo ngân sách trước khi bạn chi quá tay</Text>
                 </View>
               </View>
             </View>
