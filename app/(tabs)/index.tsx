@@ -79,9 +79,21 @@ export default function HomeScreen() {
       }
 
       const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-      const warningKey = `${today}-${usedPercentage.toFixed(0)}-${remaining.toFixed(0)}`;
-      
-      // Avoid duplicate warnings on same day
+
+      let level: "exceeded" | "90" | "75" | null = null;
+      if (remaining < 0) {
+        level = "exceeded";
+      } else if (usedPercentage >= 90) {
+        level = "90";
+      } else if (usedPercentage >= 75) {
+        level = "75";
+      } else {
+        return; // No warning needed
+      }
+
+      const warningKey = `${today}-${level}`;
+
+      // Avoid duplicate warnings on same day (per warning level)
       if (lastBudgetWarning === warningKey) {
         return;
       }
@@ -90,17 +102,15 @@ export default function HomeScreen() {
       let title = "";
       
       // Check different warning levels
-      if (remaining < 0) {
+      if (level === "exceeded") {
         title = "⚠️ Budget Exceeded!";
         message = `You've gone over budget by ${formatCurrency(Math.abs(remaining))}. Current spending: ${usedPercentage.toFixed(0)}% of budget.`;
-      } else if (usedPercentage >= 90) {
+      } else if (level === "90") {
         title = "🚨 Budget Warning!";
         message = `You've used ${usedPercentage.toFixed(0)}% of your budget. Only ${formatCurrency(remaining)} remaining.`;
-      } else if (usedPercentage >= 75) {
+      } else if (level === "75") {
         title = "📊 Budget Alert";
         message = `You've used ${usedPercentage.toFixed(0)}% of your budget. ${formatCurrency(remaining)} remaining.`;
-      } else {
-        return; // No warning needed
       }
 
       // Show push notification
@@ -144,7 +154,7 @@ export default function HomeScreen() {
     }
   };
 
-  const loadDashboard = useCallback(async () => {
+  const loadDashboard = useCallback(async (options?: { skipBudgetWarnings?: boolean }) => {
     try {
       setError("");
       const currentPeriod = formatDateYYYYMMDD(new Date()).slice(0, 7);
@@ -209,7 +219,9 @@ export default function HomeScreen() {
       setBudgetUsedPercentage(usedPercentage);
       
       // Check for budget warnings
-      checkBudgetWarnings(usedPercentage, remaining);
+      if (!options?.skipBudgetWarnings) {
+        checkBudgetWarnings(usedPercentage, remaining);
+      }
       
       // Calculate category spending
       const expenseByCategory = uiTx
@@ -239,15 +251,16 @@ export default function HomeScreen() {
     } catch (err: unknown) {
       setError(getApiErrorMessage(err));
     }
-  }, []);
+  }, [checkBudgetWarnings]);
 
   // Listen for sync events
   useEffect(() => {
     const unsubscribeTransactions = subscribe(
       SyncEvent.TRANSACTION_CREATED,
-      () => {
+      (data) => {
         console.log('Transaction created, refreshing dashboard');
-        loadDashboard();
+        const skipBudgetWarnings = data?.type === 'income';
+        loadDashboard({ skipBudgetWarnings });
       }
     );
 
