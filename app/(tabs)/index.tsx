@@ -35,6 +35,7 @@ import { useDataSync, SyncEvent } from "@/contexts/DataSyncContext";
 import { formatDateYYYYMMDD } from "@/utils/date";
 import { formatCurrency } from "@/utils/formatting";
 import { useWalletStore } from "@/stores/walletStore";
+import { useSettingsStore } from "@/stores/settingsStore";
 
 export default function HomeScreen() {
   const screenWidth = Dimensions.get("window").width;
@@ -43,6 +44,8 @@ export default function HomeScreen() {
   const selectedWalletId = useWalletStore((s) => s.selectedWalletId);
   const setSelectedWalletId = useWalletStore((s) => s.setSelectedWalletId);
   const wallets = useWalletStore((s) => s.wallets);
+  const refreshWallets = useWalletStore((s) => s.refreshWallets);
+  const appCurrency = useSettingsStore((s) => s.settings.currency);
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -69,6 +72,12 @@ export default function HomeScreen() {
     Array<{ name: string; amount: number; percentage: number }>
   >([]);
 
+  useEffect(() => {
+    if (selectedWalletId === null && defaultWalletId) {
+      setSelectedWalletId(defaultWalletId);
+    }
+  }, [defaultWalletId, selectedWalletId, setSelectedWalletId]);
+
   const categoryIdByTypeAndName = useMemo(() => {
     const map = new Map<string, number>();
     categories.forEach((cat) => {
@@ -76,6 +85,30 @@ export default function HomeScreen() {
     });
     return map;
   }, [categories]);
+
+  const selectedWalletLabel = useMemo(() => {
+    const resolvedWalletId = selectedWalletId ?? defaultWalletId;
+    const w = wallets.find((x) => x.id === resolvedWalletId);
+    return w?.name || "Wallet";
+  }, [defaultWalletId, selectedWalletId, wallets]);
+
+  const displayCurrency = useMemo(() => {
+    const resolvedWalletId = selectedWalletId ?? defaultWalletId;
+    const w = wallets.find((x) => x.id === resolvedWalletId);
+    return w?.currency || appCurrency || "USD";
+  }, [appCurrency, defaultWalletId, selectedWalletId, wallets]);
+
+  const walletBalanceFromStore = useMemo(() => {
+    const resolvedWalletId = selectedWalletId ?? defaultWalletId;
+    const w = wallets.find((x) => x.id === resolvedWalletId);
+    return Number(w?.balance) || 0;
+  }, [defaultWalletId, selectedWalletId, wallets]);
+
+  useEffect(() => {
+    if (transactions.length === 0) {
+      setTotalBalance(walletBalanceFromStore);
+    }
+  }, [transactions.length, walletBalanceFromStore]);
 
   const checkBudgetWarnings = useCallback(async (usedPercentage: number, remaining: number) => {
     try {
@@ -112,13 +145,13 @@ export default function HomeScreen() {
       // Check different warning levels
       if (level === "exceeded") {
         title = "⚠️ Budget Exceeded!";
-        message = `You've gone over budget by ${formatCurrency(Math.abs(remaining))}. Current spending: ${usedPercentage.toFixed(0)}% of budget.`;
+        message = `You've gone over budget by ${formatCurrency(Math.abs(remaining), displayCurrency)}. Current spending: ${usedPercentage.toFixed(0)}% of budget.`;
       } else if (level === "90") {
         title = "🚨 Budget Warning!";
-        message = `You've used ${usedPercentage.toFixed(0)}% of your budget. Only ${formatCurrency(remaining)} remaining.`;
+        message = `You've used ${usedPercentage.toFixed(0)}% of your budget. Only ${formatCurrency(remaining, displayCurrency)} remaining.`;
       } else if (level === "75") {
         title = "📊 Budget Alert";
-        message = `You've used ${usedPercentage.toFixed(0)}% of your budget. ${formatCurrency(remaining)} remaining.`;
+        message = `You've used ${usedPercentage.toFixed(0)}% of your budget. ${formatCurrency(remaining, displayCurrency)} remaining.`;
       }
 
       // Show push notification
@@ -134,7 +167,7 @@ export default function HomeScreen() {
       // Silent fail for notifications
       console.log('Notification check failed:', error);
     }
-  }, [lastBudgetWarning]);
+  }, [displayCurrency, lastBudgetWarning]);
 
   const sendBudgetNotification = async (title: string, body: string) => {
     try {
@@ -162,12 +195,6 @@ export default function HomeScreen() {
     }
   };
 
-  const selectedWalletLabel = useMemo(() => {
-    if (selectedWalletId === null) return "All wallets";
-    const w = wallets.find((x) => x.id === selectedWalletId);
-    return w?.name || "Wallet";
-  }, [selectedWalletId, wallets]);
-
   const loadDashboard = useCallback(async (options?: { skipBudgetWarnings?: boolean }) => {
     try {
       setError("");
@@ -182,11 +209,13 @@ export default function HomeScreen() {
             offset: 0,
             walletId: selectedWalletId ?? undefined,
           }),
-          budgetService.listBudgets({ period: currentPeriod }) // Current period (local date)
+          budgetService.listBudgets({
+            period: currentPeriod,
+            walletId: selectedWalletId ?? undefined,
+          }) // Current period (local date)
         ]);
 
       setUserName(meRes.username || "");
-      setTotalBalance(Number(dashboardRes.balance) || 0);
       setCategoryStats(dashboardRes.categoryStats || []);
       setCategories(categoriesRes);
 
@@ -208,6 +237,10 @@ export default function HomeScreen() {
       });
 
       setTransactions(uiTx);
+
+      // If this wallet has no transactions yet, show the wallet's current balance
+      // (user may have set it manually in Wallets screen).
+      setTotalBalance(uiTx.length === 0 ? walletBalanceFromStore : Number(dashboardRes.balance) || 0);
       
       // Calculate total income and expenses
       const income = uiTx.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
@@ -219,26 +252,38 @@ export default function HomeScreen() {
       setTotalExpense(expense);
       setTotalSavings(savings);
       setSavingsRate(savingsRatePercent);
-      
-      // Calculate budget from real budgets or default
-      const totalBudgetFromAPI = (budgetsRes || []).reduce((sum: number, budget: any) => 
-        sum + Number(budget.amount), 0
-      );
-      
-      // If no budgets set, use default (70% of income)
-      const actualBudget = totalBudgetFromAPI > 0 ? totalBudgetFromAPI : income * 0.7;
-      const used = expense;
-      const remaining = actualBudget - used;
-      const usedPercentage = actualBudget > 0 ? (used / actualBudget) * 100 : 0;
-      
-      setMonthlyBudget(actualBudget);
-      setBudgetUsed(used);
-      setBudgetRemaining(remaining);
-      setBudgetUsedPercentage(usedPercentage);
-      
-      // Check for budget warnings
-      if (!options?.skipBudgetWarnings) {
-        checkBudgetWarnings(usedPercentage, remaining);
+
+      const resolvedWalletId = selectedWalletId ?? defaultWalletId;
+
+      // Budgets are wallet-scoped.
+      // Dashboard does not support "All wallets" (multi-currency ambiguity).
+      if (!resolvedWalletId) {
+        setMonthlyBudget(0);
+        setBudgetUsed(0);
+        setBudgetRemaining(0);
+        setBudgetUsedPercentage(0);
+      } else {
+        // Calculate budget from real budgets or default
+        const totalBudgetFromAPI = (budgetsRes || []).reduce(
+          (sum: number, budget: any) => sum + Number(budget.amount),
+          0,
+        );
+
+        // If no budgets set, use default (70% of income)
+        const actualBudget = totalBudgetFromAPI > 0 ? totalBudgetFromAPI : income * 0.7;
+        const used = expense;
+        const remaining = actualBudget - used;
+        const usedPercentage = actualBudget > 0 ? (used / actualBudget) * 100 : 0;
+
+        setMonthlyBudget(actualBudget);
+        setBudgetUsed(used);
+        setBudgetRemaining(remaining);
+        setBudgetUsedPercentage(usedPercentage);
+
+        // Check for budget warnings
+        if (!options?.skipBudgetWarnings) {
+          checkBudgetWarnings(usedPercentage, remaining);
+        }
       }
       
       // Calculate category spending
@@ -269,7 +314,7 @@ export default function HomeScreen() {
     } catch (err: unknown) {
       setError(getApiErrorMessage(err));
     }
-  }, [checkBudgetWarnings, selectedWalletId]);
+  }, [checkBudgetWarnings, defaultWalletId, selectedWalletId, walletBalanceFromStore]);
 
   // Listen for sync events
   useEffect(() => {
@@ -279,6 +324,7 @@ export default function HomeScreen() {
         console.log('Transaction created, refreshing dashboard');
         const skipBudgetWarnings = data?.type === 'income';
         loadDashboard({ skipBudgetWarnings });
+        refreshWallets().catch(() => undefined);
       }
     );
 
@@ -364,6 +410,7 @@ export default function HomeScreen() {
       });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setModalVisible(false);
+      await refreshWallets();
       setRefreshKey((k) => k + 1);
     } catch (e) {
       const msg = getApiErrorMessage(e);
@@ -514,19 +561,6 @@ export default function HomeScreen() {
                 </Text>
               </View>
 
-              <TouchableOpacity
-                className="px-5 py-4 flex-row items-center justify-between"
-                onPress={() => {
-                  setSelectedWalletId(null);
-                  setWalletPickerVisible(false);
-                }}
-              >
-                <Text className="text-gray-900 font-semibold">All wallets</Text>
-                {selectedWalletId === null ? (
-                  <Text className="text-blue-600 font-semibold">Selected</Text>
-                ) : null}
-              </TouchableOpacity>
-
               {(wallets || []).map((w) => (
                 <TouchableOpacity
                   key={String(w.id)}
@@ -539,7 +573,7 @@ export default function HomeScreen() {
                   <View>
                     <Text className="text-gray-900 font-semibold">{w.name}</Text>
                     <Text className="text-gray-500 text-xs">
-                      {formatCurrency(Number(w.balance) || 0)}
+                      {formatCurrency(Number(w.balance) || 0, w.currency)}
                     </Text>
                   </View>
                   {selectedWalletId === w.id ? (
@@ -563,7 +597,7 @@ export default function HomeScreen() {
                 <Wallet size={20} />
               </View>
               <Text className="text-3xl font-bold mb-2">
-                {formatCurrency(totalBalance)}
+                {formatCurrency(totalBalance, displayCurrency)}
               </Text>
               <View className="flex-row items-center">
                 <TrendingUp size={16} color="#10B981" />
@@ -580,7 +614,7 @@ export default function HomeScreen() {
                 <Text className="text-xs text-green-600 font-medium">+12%</Text>
               </View>
               <Text className="text-green-900 text-xl font-bold">
-                {formatCurrency(totalIncome)}
+                {formatCurrency(totalIncome, displayCurrency)}
               </Text>
               <Text className="text-green-700 text-sm mt-1">Income</Text>
             </View>
@@ -592,7 +626,7 @@ export default function HomeScreen() {
                 <Text className="text-xs text-red-600 font-medium">+8%</Text>
               </View>
               <Text className="text-red-900 text-xl font-bold">
-                {formatCurrency(totalExpense)}
+                {formatCurrency(totalExpense, displayCurrency)}
               </Text>
               <Text className="text-red-700 text-sm mt-1">Expenses</Text>
             </View>
@@ -606,7 +640,7 @@ export default function HomeScreen() {
                 </Text>
               </View>
               <Text className="text-purple-900 text-xl font-bold">
-                {formatCurrency(totalSavings)}
+                {formatCurrency(totalSavings, displayCurrency)}
               </Text>
               <Text className="text-purple-700 text-sm mt-1">Savings</Text>
             </View>
@@ -625,7 +659,7 @@ export default function HomeScreen() {
               <Text className={`text-xl font-bold ${
                 budgetRemaining < 0 ? 'text-red-900' : 'text-yellow-900'
               }`}>
-                {formatCurrency(Math.abs(budgetRemaining))}
+                {formatCurrency(Math.abs(budgetRemaining), displayCurrency)}
               </Text>
               <Text className={`text-sm mt-1 ${
                 budgetRemaining < 0 ? 'text-red-700' : 'text-yellow-700'
@@ -717,7 +751,7 @@ export default function HomeScreen() {
                 </View>
                 <View className="items-end">
                   <Text className="text-sm font-semibold text-gray-900">
-                    {formatCurrency(cat.amount)}
+                    {formatCurrency(cat.amount, displayCurrency)}
                   </Text>
                   <Text className="text-xs text-gray-500">
                     {cat.percentage.toFixed(1)}%
@@ -728,7 +762,7 @@ export default function HomeScreen() {
           </View>
 
           {/* Recent Transactions */}
-          <RecentTransactions transactions={transactions} />
+          <RecentTransactions transactions={transactions} currency={displayCurrency} />
 
           {!!error && (
             <View className="mx-6 mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl">

@@ -233,7 +233,7 @@ export default function WalletsScreen() {
                         {w.type} • {w.currency}
                       </Text>
                       <Text className="text-gray-900 font-bold mt-2">
-                        {formatCurrency(Number(w.balance) || 0)}
+                        {formatCurrency(Number(w.balance) || 0, w.currency)}
                       </Text>
                     </View>
 

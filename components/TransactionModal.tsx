@@ -27,6 +27,7 @@ interface TransactionModalProps {
   ) => void;
   initialType: TransactionType;
   categories: Array<{ name: string; type: TransactionType }>;
+  currency?: string;
 }
 
 export function TransactionModal({
@@ -35,12 +36,26 @@ export function TransactionModal({
   onSave,
   initialType,
   categories,
+  currency,
 }: TransactionModalProps) {
   const { triggerSync } = useDataSync();
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("");
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const currencySymbol = React.useMemo(() => {
+    try {
+      const ccy = (currency || "USD").toUpperCase();
+      const parts = new Intl.NumberFormat(undefined, {
+        style: "currency",
+        currency: ccy,
+      }).formatToParts(0);
+      return parts.find((p) => p.type === "currency")?.value || ccy;
+    } catch {
+      return currency || "$";
+    }
+  }, [currency]);
 
   // Reset fields when modal opens (handled by useEffect in parent or just let basic persist)
   // For better UX, we might want to reset locally when visible changes to true.
@@ -105,7 +120,7 @@ export function TransactionModal({
               </Text>
               <View className="flex-row items-center border-b border-gray-200 py-2">
                 <Text className={`text-3xl font-bold mr-2 ${textColor}`}>
-                  $
+                  {currencySymbol}
                 </Text>
                 <TextInput
                   className="flex-1 text-4xl font-bold text-gray-900"

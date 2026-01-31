@@ -15,11 +15,15 @@ import { getApiErrorMessage } from "@/services/apiClient";
 import { useDataSync, SyncEvent } from "@/contexts/DataSyncContext";
 import { formatDateYYYYMMDD } from "@/utils/date";
 import { useWalletStore } from "@/stores/walletStore";
+import { useSettingsStore } from "@/stores/settingsStore";
 
 export default function TransactionsScreen() {
   const { subscribe, transactionRefreshKey } = useDataSync();
   const defaultWalletId = useWalletStore((s) => s.defaultWalletId);
   const selectedWalletId = useWalletStore((s) => s.selectedWalletId);
+  const wallets = useWalletStore((s) => s.wallets);
+  const refreshWallets = useWalletStore((s) => s.refreshWallets);
+  const appCurrency = useSettingsStore((s) => s.settings.currency);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string>("");
   const [transactions, setTransactions] = React.useState<Transaction[]>([]);
@@ -68,6 +72,12 @@ export default function TransactionsScreen() {
     setTransactions(uiTx);
   }, [selectedWalletId]);
 
+  const displayCurrency = React.useMemo(() => {
+    const resolvedWalletId = selectedWalletId ?? defaultWalletId;
+    const w = wallets.find((x) => x.id === resolvedWalletId);
+    return w?.currency || appCurrency || "USD";
+  }, [appCurrency, defaultWalletId, selectedWalletId, wallets]);
+
   // Listen for sync events
   React.useEffect(() => {
     const unsubscribeTransactionCreated = subscribe(
@@ -75,6 +85,7 @@ export default function TransactionsScreen() {
       () => {
         console.log("Transaction created, refreshing transactions list");
         fetchData();
+        refreshWallets().catch(() => undefined);
       },
     );
 
@@ -167,6 +178,7 @@ export default function TransactionsScreen() {
       });
       setModalVisible(false);
       await fetchData();
+      await refreshWallets();
     } catch (e) {
       const msg = getApiErrorMessage(e);
       if (msg.toLowerCase().includes("wallet_id is required")) {
@@ -236,7 +248,7 @@ export default function TransactionsScreen() {
             </Text>
           </View>
         ) : (
-          <RecentTransactions transactions={transactions} />
+          <RecentTransactions transactions={transactions} currency={displayCurrency} />
         )}
       </ScrollView>
 
@@ -246,6 +258,7 @@ export default function TransactionsScreen() {
         onSave={handleSaveTransaction}
         initialType={modalType}
         categories={categories}
+        currency={displayCurrency}
       />
     </SafeAreaView>
   );

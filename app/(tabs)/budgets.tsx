@@ -17,6 +17,7 @@ import { LineChart, BarChart } from "react-native-chart-kit";
 import { authService, budgetService, categoryService, transactionService } from "@/services";
 import { getApiErrorMessage } from "@/services/apiClient";
 import { useSettingsStore } from "@/stores/settingsStore";
+import { useWalletStore } from "@/stores/walletStore";
 import { formatCurrency } from "@/utils/formatting";
 import { useDataSync, SyncEvent } from "@/contexts/DataSyncContext";
 
@@ -34,6 +35,8 @@ type Budget = {
 export default function BudgetsScreen() {
   const router = useRouter();
   const currency = useSettingsStore((s) => s.settings.currency);
+  const selectedWalletId = useWalletStore((s) => s.selectedWalletId);
+  const wallets = useWalletStore((s) => s.wallets);
   const screenWidth = Dimensions.get("window").width;
   const { subscribe, transactionRefreshKey, budgetRefreshKey } = useDataSync();
   
@@ -48,15 +51,32 @@ export default function BudgetsScreen() {
   const [budgetAmount, setBudgetAmount] = React.useState("");
   const [budgetPeriod, setBudgetPeriod] = React.useState("2026-01");
 
+  const displayCurrency = React.useMemo(() => {
+    if (!selectedWalletId) return currency;
+    const w = wallets.find((x) => x.id === selectedWalletId);
+    return w?.currency || currency;
+  }, [currency, selectedWalletId, wallets]);
+
   const loadBudgets = React.useCallback(async () => {
     try {
       setLoading(true);
       setError("");
+
+      if (!selectedWalletId) {
+        setBudgets([]);
+        setCategories([]);
+        setError("Please select a wallet to manage budgets.");
+        return;
+      }
       
       const [budgetsRes, categoriesRes, transactionsRes] = await Promise.all([
-        budgetService.listBudgets({ period: budgetPeriod }),
+        budgetService.listBudgets({ period: budgetPeriod, walletId: selectedWalletId }),
         categoryService.listCategories(),
-        transactionService.listTransactions({ limit: 1000, offset: 0 }) // Get all transactions
+        transactionService.listTransactions({
+          limit: 1000,
+          offset: 0,
+          walletId: selectedWalletId,
+        }) // Get all transactions
       ]);
       
       setCategories(categoriesRes);
@@ -102,7 +122,7 @@ export default function BudgetsScreen() {
     } finally {
       setLoading(false);
     }
-  }, [budgetPeriod]);
+  }, [budgetPeriod, selectedWalletId]);
 
   React.useEffect(() => {
     loadBudgets();
@@ -172,6 +192,11 @@ export default function BudgetsScreen() {
       return;
     }
 
+    if (!selectedWalletId) {
+      Alert.alert("Error", "Please select a wallet first");
+      return;
+    }
+
     try {
       setLoading(true);
       const category = categories.find(c => c.name === selectedCategory);
@@ -180,6 +205,7 @@ export default function BudgetsScreen() {
       }
 
       await budgetService.createBudget({
+        wallet_id: selectedWalletId,
         category_id: category.id,
         amount: Number(budgetAmount),
         period: budgetPeriod,
@@ -267,7 +293,7 @@ export default function BudgetsScreen() {
                 </Text>
               </View>
               <Text className="text-blue-900 text-xl font-bold">
-                {formatCurrency(isNaN(totalBudget) ? 0 : totalBudget)}
+                {formatCurrency(isNaN(totalBudget) ? 0 : totalBudget, displayCurrency)}
               </Text>
               <Text className="text-blue-700 text-sm mt-1">Total Budget</Text>
             </View>
@@ -282,7 +308,10 @@ export default function BudgetsScreen() {
               <Text className={`text-xl font-bold ${
                 totalRemaining < 0 ? 'text-red-900' : 'text-green-900'
               }`}>
-                {formatCurrency(Math.abs(isNaN(totalRemaining) ? 0 : totalRemaining))}
+                {formatCurrency(
+                  Math.abs(isNaN(totalRemaining) ? 0 : totalRemaining),
+                  displayCurrency,
+                )}
               </Text>
               <Text className={`text-sm mt-1 ${
                 totalRemaining < 0 ? 'text-red-700' : 'text-green-700'
@@ -405,8 +434,8 @@ export default function BudgetsScreen() {
 
                 <View className="mb-2">
                   <View className="flex-row justify-between text-sm mb-1">
-                    <Text className="text-gray-600">Spent: {formatCurrency(budget.spent)}</Text>
-                    <Text className="text-gray-600">{formatCurrency(budget.amount)}</Text>
+                    <Text className="text-gray-600">Spent: {formatCurrency(budget.spent, displayCurrency)}</Text>
+                    <Text className="text-gray-600">{formatCurrency(budget.amount, displayCurrency)}</Text>
                   </View>
                   <View className="w-full bg-gray-200 rounded-full h-2">
                     <View
@@ -417,11 +446,11 @@ export default function BudgetsScreen() {
                       style={{ width: `${Math.min(budget.percentage, 100)}%` }}
                     />
                   </View>
-                  <Text className={`text-xs mt-1 ${
+                  <Text className={`text-xs mt-2 font-medium ${
                     budget.percentage > 90 ? 'text-red-600' :
                     budget.percentage > 70 ? 'text-yellow-600' : 'text-green-600'
                   }`}>
-                    {budget.percentage.toFixed(0)}% used • {formatCurrency(budget.remaining)} left
+                    {budget.percentage.toFixed(0)}% used • {formatCurrency(budget.remaining, displayCurrency)} left
                   </Text>
                 </View>
               </View>

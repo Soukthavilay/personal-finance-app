@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
-import type { walletService } from "@/services";
+import { walletService } from "@/services";
 
 type WalletState = {
   wallets: walletService.Wallet[];
@@ -11,6 +11,7 @@ type WalletState = {
   setWallets: (wallets: walletService.Wallet[]) => void;
   setDefaultWalletId: (id: number | null) => void;
   setSelectedWalletId: (id: number | null) => void;
+  refreshWallets: () => Promise<void>;
   reset: () => void;
 };
 
@@ -25,7 +26,7 @@ const DEFAULT_STATE: Pick<
 
 export const useWalletStore = create<WalletState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       ...DEFAULT_STATE,
       setWallets: (wallets) =>
         set((state) => {
@@ -52,6 +53,10 @@ export const useWalletStore = create<WalletState>()(
         }),
       setDefaultWalletId: (id) => set(() => ({ defaultWalletId: id })),
       setSelectedWalletId: (id) => set(() => ({ selectedWalletId: id })),
+      refreshWallets: async () => {
+        const wallets = await walletService.listWallets();
+        get().setWallets(wallets);
+      },
       reset: () => set(() => ({ ...DEFAULT_STATE })),
     }),
     {

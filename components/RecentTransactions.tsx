@@ -26,6 +26,7 @@ export interface Transaction {
 
 interface RecentTransactionsProps {
   transactions: Transaction[];
+  currency: string;
 }
 
 const getIconForCategory = (category: string) => {
@@ -53,8 +54,8 @@ const getIconForCategory = (category: string) => {
   }
 };
 
-export function RecentTransactions({ transactions }: RecentTransactionsProps) {
-  const { currency, language, date_format } = useSettingsStore(
+export function RecentTransactions({ transactions, currency }: RecentTransactionsProps) {
+  const { language, date_format } = useSettingsStore(
     (s) => s.settings,
   );
 
