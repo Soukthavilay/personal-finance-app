@@ -26,28 +26,15 @@ interface TransactionModalProps {
     type: TransactionType,
   ) => void;
   initialType: TransactionType;
+  categories: Array<{ name: string; type: TransactionType }>;
 }
-
-const CATEGORIES = {
-  income: ["Salary", "Bonus", "Other Income"],
-  expense: [
-    "Food",
-    "Rent",
-    "Shopping",
-    "Utilities",
-    "Entertainment",
-    "Transportation",
-    "Healthcare",
-    "Education",
-    "Other Expense",
-  ],
-};
 
 export function TransactionModal({
   visible,
   onClose,
   onSave,
   initialType,
+  categories,
 }: TransactionModalProps) {
   const { triggerSync } = useDataSync();
   const [amount, setAmount] = useState("");
@@ -86,6 +73,9 @@ export function TransactionModal({
   const themeColor = isExpense ? "bg-red-500" : "bg-green-500";
   const textColor = isExpense ? "text-red-500" : "text-green-500";
   const buttonColor = isExpense ? "#ef4444" : "#22c55e";
+  const availableCategories = categories.filter(
+    (cat) => cat.type === initialType,
+  );
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
@@ -134,22 +124,22 @@ export function TransactionModal({
                 CATEGORY
               </Text>
               <View className="flex-row flex-wrap gap-2">
-                {CATEGORIES[initialType].map((cat) => (
+                {availableCategories.map((cat) => (
                   <TouchableOpacity
-                    key={cat}
-                    onPress={() => setCategory(cat)}
+                    key={cat.name}
+                    onPress={() => setCategory(cat.name)}
                     className={`px-4 py-2 rounded-full border ${
-                      category === cat
+                      category === cat.name
                         ? `${themeColor} border-transparent`
                         : "bg-white border-gray-300"
                     }`}
                   >
                     <Text
                       className={`font-medium ${
-                        category === cat ? "text-white" : "text-gray-600"
+                        category === cat.name ? "text-white" : "text-gray-600"
                       }`}
                     >
-                      {cat}
+                      {cat.name}
                     </Text>
                   </TouchableOpacity>
                 ))}

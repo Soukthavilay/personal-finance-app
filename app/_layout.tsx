@@ -7,6 +7,7 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React from "react";
 import "react-native-reanimated";
+import * as Notifications from "expo-notifications";
 import "../global.css";
 
 import { authService, userService } from "@/services";
@@ -17,6 +18,32 @@ import { DataSyncProvider } from "@/contexts/DataSyncContext";
 
 export const unstable_settings = {
   anchor: "(tabs)",
+};
+
+// Configure notification handler
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
+
+// Setup device token registration
+const setupDeviceToken = async () => {
+  try {
+    const token = await Notifications.getExpoPushTokenAsync();
+    console.log('Device token:', token.data);
+    
+    // Register device token with backend
+    // This will be called when user enables notifications
+    return token.data;
+  } catch (error) {
+    console.log('Failed to get device token:', error);
+    return null;
+  }
 };
 
 export default function RootLayout() {
@@ -31,6 +58,25 @@ export default function RootLayout() {
     segments[0] === "register" ||
     segments[0] === "forgot-password" ||
     segments[0] === "reset-password";
+
+  // Setup notification listeners
+  React.useEffect(() => {
+    // Listen for notifications received while app is in foreground
+    const notificationListener = Notifications.addNotificationReceivedListener(notification => {
+      console.log('📱 Notification received:', notification);
+    });
+
+    // Listen for user interactions with notifications
+    const responseListener = Notifications.addNotificationResponseReceivedListener(response => {
+      console.log('👆 User tapped notification:', response);
+      // You can add navigation logic here based on notification data
+    });
+
+    return () => {
+      notificationListener.remove();
+      responseListener.remove();
+    };
+  }, []);
 
   React.useEffect(() => {
     const unsubscribe = onUnauthorized(() => {

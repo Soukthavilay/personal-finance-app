@@ -1,4 +1,4 @@
-import { ChevronRight, LogOut, User, Wallet, Bell, CreditCard, Settings, Globe, Shield, HelpCircle } from "lucide-react-native";
+import { ChevronRight, LogOut, User, Wallet, Bell, CreditCard, Settings, Globe, Shield, HelpCircle, Target, AlertCircle } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import React from "react";
 import {
@@ -11,6 +11,9 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { notificationService } from "@/services";
+import { getApiErrorMessage } from "@/services/apiClient";
+import * as Notifications from "expo-notifications";
 import { authService } from "@/services";
 import { useSettingsStore } from "@/stores/settingsStore";
 
@@ -121,6 +124,31 @@ export default function SettingsScreen() {
     router.push("/budgets" as any);
   };
 
+  const testNotification = async () => {
+    try {
+      // Request permissions
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert("Permission Required", "Please enable notifications in settings");
+        return;
+      }
+
+      // Send test notification
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: "🧪 Test Notification",
+          body: "This is a test to verify notifications are working!",
+          sound: 'default',
+        },
+        trigger: null, // Show immediately
+      });
+
+      Alert.alert("Success", "Test notification sent! Check your notification center.");
+    } catch (error) {
+      Alert.alert("Error", "Failed to send test notification");
+    }
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
       <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
@@ -170,6 +198,12 @@ export default function SettingsScreen() {
               title="Thông báo"
               subtitle="Quản lý thông báo đẩy"
               onPress={() => router.push("/notifications" as any)}
+            />
+            <SettingsItem
+              icon={<AlertCircle size={20} color="#8B5CF6" />}
+              title="Test Notification"
+              subtitle="Gửi thông báo kiểm tra"
+              onPress={testNotification}
             />
           </SettingsSection>
 

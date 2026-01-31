@@ -14,6 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { categoryService, transactionService } from "@/services";
 import { getApiErrorMessage } from "@/services/apiClient";
+import { useDataSync, SyncEvent } from "@/contexts/DataSyncContext";
 
 type Category = {
   id: number;
@@ -24,6 +25,7 @@ type Category = {
 
 export default function CategoriesScreen() {
   const router = useRouter();
+  const { triggerSync } = useDataSync();
   
   const [categories, setCategories] = React.useState<Category[]>([]);
   const [loading, setLoading] = React.useState(false);
@@ -79,6 +81,7 @@ export default function CategoriesScreen() {
       setCategoryName("");
       setCategoryType("expense");
       loadCategories();
+      triggerSync(SyncEvent.CATEGORY_CREATED);
     } catch (err) {
       setError(getApiErrorMessage(err));
     } finally {
@@ -103,6 +106,7 @@ export default function CategoriesScreen() {
       setCategoryName("");
       setCategoryType("expense");
       loadCategories();
+      triggerSync(SyncEvent.CATEGORY_UPDATED);
     } catch (err) {
       setError(getApiErrorMessage(err));
     } finally {
@@ -135,6 +139,7 @@ export default function CategoriesScreen() {
             try {
               await categoryService.deleteCategory(category.id);
               loadCategories();
+              triggerSync(SyncEvent.CATEGORY_DELETED);
             } catch (err) {
               setError(getApiErrorMessage(err));
             }

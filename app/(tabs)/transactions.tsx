@@ -63,15 +63,44 @@ export default function TransactionsScreen() {
 
   // Listen for sync events
   React.useEffect(() => {
-    const unsubscribe = subscribe(
+    const unsubscribeTransactionCreated = subscribe(
       SyncEvent.TRANSACTION_CREATED,
       () => {
-        console.log('Transaction created, refreshing transactions list');
+        console.log("Transaction created, refreshing transactions list");
         fetchData();
-      }
+      },
     );
 
-    return unsubscribe;
+    const unsubscribeCategoryCreated = subscribe(
+      SyncEvent.CATEGORY_CREATED,
+      () => {
+        console.log("Category created, refreshing categories list");
+        fetchData();
+      },
+    );
+
+    const unsubscribeCategoryUpdated = subscribe(
+      SyncEvent.CATEGORY_UPDATED,
+      () => {
+        console.log("Category updated, refreshing categories list");
+        fetchData();
+      },
+    );
+
+    const unsubscribeCategoryDeleted = subscribe(
+      SyncEvent.CATEGORY_DELETED,
+      () => {
+        console.log("Category deleted, refreshing categories list");
+        fetchData();
+      },
+    );
+
+    return () => {
+      unsubscribeTransactionCreated?.();
+      unsubscribeCategoryCreated?.();
+      unsubscribeCategoryUpdated?.();
+      unsubscribeCategoryDeleted?.();
+    };
   }, [fetchData, subscribe]);
 
   // Refresh when transaction refresh key changes
@@ -194,6 +223,7 @@ export default function TransactionsScreen() {
         onClose={() => setModalVisible(false)}
         onSave={handleSaveTransaction}
         initialType={modalType}
+        categories={categories}
       />
     </SafeAreaView>
   );

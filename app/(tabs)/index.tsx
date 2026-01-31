@@ -1,6 +1,7 @@
 import { CreditCard, DollarSign, TrendingUp, Wallet, TrendingDown, PieChart as PieChartIcon, BarChart3, Target, PiggyBank } from "lucide-react-native";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  Alert,
   Dimensions,
   ScrollView,
   Text,
@@ -11,6 +12,7 @@ import { LineChart, PieChart } from "react-native-chart-kit";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import * as Haptics from "expo-haptics";
+import * as Notifications from "expo-notifications";
 
 import {
   RecentTransactions,
@@ -22,6 +24,7 @@ import {
   authService,
   budgetService,
   categoryService,
+  notificationService,
   reportService,
   transactionService,
 } from "@/services";
@@ -48,6 +51,7 @@ export default function HomeScreen() {
   const [budgetUsed, setBudgetUsed] = useState<number>(0);
   const [budgetRemaining, setBudgetRemaining] = useState<number>(0);
   const [budgetUsedPercentage, setBudgetUsedPercentage] = useState<number>(0);
+  const [lastBudgetWarning, setLastBudgetWarning] = useState<string>("");
   const [refreshKey, setRefreshKey] = useState(0);
   const [categories, setCategories] = useState<categoryService.Category[]>([]);
   const [categoryStats, setCategoryStats] = useState<
@@ -65,16 +69,92 @@ export default function HomeScreen() {
     return map;
   }, [categories]);
 
+  const checkBudgetWarnings = useCallback(async (usedPercentage: number, remaining: number) => {
+    try {
+      // Get notification preferences
+      const prefs = await notificationService.getPreferences();
+      
+      if (!prefs.enabled || !prefs.budget_warning_enabled) {
+        return;
+      }
+
+      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+      const warningKey = `${today}-${usedPercentage.toFixed(0)}-${remaining.toFixed(0)}`;
+      
+      // Avoid duplicate warnings on same day
+      if (lastBudgetWarning === warningKey) {
+        return;
+      }
+
+      let message = "";
+      let title = "";
+      
+      // Check different warning levels
+      if (remaining < 0) {
+        title = "⚠️ Budget Exceeded!";
+        message = `You've gone over budget by ${formatCurrency(Math.abs(remaining))}. Current spending: ${usedPercentage.toFixed(0)}% of budget.`;
+      } else if (usedPercentage >= 90) {
+        title = "🚨 Budget Warning!";
+        message = `You've used ${usedPercentage.toFixed(0)}% of your budget. Only ${formatCurrency(remaining)} remaining.`;
+      } else if (usedPercentage >= 75) {
+        title = "📊 Budget Alert";
+        message = `You've used ${usedPercentage.toFixed(0)}% of your budget. ${formatCurrency(remaining)} remaining.`;
+      } else {
+        return; // No warning needed
+      }
+
+      // Show push notification
+      await sendBudgetNotification(title, message);
+      
+      // Also show alert for immediate feedback
+      Alert.alert(title, message, [{ text: "OK" }]);
+      
+      // Store warning to prevent duplicates
+      setLastBudgetWarning(warningKey);
+      
+    } catch (error) {
+      // Silent fail for notifications
+      console.log('Notification check failed:', error);
+    }
+  }, [lastBudgetWarning]);
+
+  const sendBudgetNotification = async (title: string, body: string) => {
+    try {
+      // Request permissions (iOS)
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status !== 'granted') {
+        console.log('Notification permissions not granted');
+        return;
+      }
+
+      // Schedule immediate notification
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title,
+          body,
+          data: { type: 'budget_warning' },
+          sound: 'default',
+        },
+        trigger: null, // Show immediately
+      });
+
+      console.log('Budget notification sent:', title);
+    } catch (error) {
+      console.log('Failed to send notification:', error);
+    }
+  };
+
   const loadDashboard = useCallback(async () => {
     try {
       setError("");
+      const currentPeriod = formatDateYYYYMMDD(new Date()).slice(0, 7);
       const [meRes, dashboardRes, categoriesRes, transactionsRes, budgetsRes] =
         await Promise.all([
           authService.me(),
           reportService.getDashboard(),
           categoryService.listCategories(),
           transactionService.listTransactions({ limit: 20, offset: 0 }),
-          budgetService.listBudgets({ period: new Date().toISOString().slice(0, 7) }) // Current period
+          budgetService.listBudgets({ period: currentPeriod }) // Current period (local date)
         ]);
 
       setUserName(meRes.username || "");
@@ -128,6 +208,9 @@ export default function HomeScreen() {
       setBudgetRemaining(remaining);
       setBudgetUsedPercentage(usedPercentage);
       
+      // Check for budget warnings
+      checkBudgetWarnings(usedPercentage, remaining);
+      
       // Calculate category spending
       const expenseByCategory = uiTx
         .filter(t => t.type === 'expense')
@@ -176,9 +259,27 @@ export default function HomeScreen() {
       }
     );
 
+    const unsubscribeCategoriesUpdated = subscribe(
+      SyncEvent.CATEGORY_UPDATED,
+      () => {
+        console.log('Category updated, refreshing dashboard');
+        loadDashboard();
+      }
+    );
+
+    const unsubscribeCategoriesDeleted = subscribe(
+      SyncEvent.CATEGORY_DELETED,
+      () => {
+        console.log('Category deleted, refreshing dashboard');
+        loadDashboard();
+      }
+    );
+
     return () => {
       unsubscribeTransactions?.();
       unsubscribeCategories?.();
+      unsubscribeCategoriesUpdated?.();
+      unsubscribeCategoriesDeleted?.();
     };
   }, [loadDashboard, subscribe]);
 
@@ -454,78 +555,69 @@ export default function HomeScreen() {
                 <View className="bg-green-100 p-3 rounded-full mb-3 shadow-sm">
                   <DollarSign size={24} color="#16a34a" />
                 </View>
-                <Text className="font-semibold text-gray-700">Add Income</Text>
+                <Text className="text-gray-900 font-semibold text-base">
+                  Add Income
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={() => handleOpenModal("expense")}
-                className="flex-1 bg-white p-4 rounded-2xl shadow-sm ml-3 items-center border border-gray-100 active:bg-gray-50"
+                className="flex-1 bg-white p-4 rounded-2xl shadow-sm items-center border border-gray-100 active:bg-gray-50"
               >
                 <View className="bg-red-100 p-3 rounded-full mb-3 shadow-sm">
                   <CreditCard size={24} color="#dc2626" />
                 </View>
-                <Text className="font-semibold text-gray-700">Add Expense</Text>
+                <Text className="text-gray-900 font-semibold text-base">
+                  Add Expense
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* Spending Analysis Section */}
-          <View className="mb-6">
-            <View className="flex-row items-center justify-between mb-4">
-              <Text className="text-lg font-bold text-gray-800 tracking-tight">
-                Spending Analysis
-              </Text>
-              <TouchableOpacity className="flex-row items-center">
-                <BarChart3 size={16} color="#6B7280" />
-                <Text className="text-sm text-gray-600 ml-1">View All</Text>
-              </TouchableOpacity>
-            </View>
+          {/* Spending by Category - Pie Chart */}
+          <View className="bg-white rounded-2xl p-4 mb-6 shadow-sm border border-gray-100">
+            <Text className="text-lg font-bold text-gray-800 mb-4 tracking-tight">
+              Spending by Category
+            </Text>
+            <PieChart
+              data={pieChartData}
+              width={screenWidth - 72}
+              height={200}
+              chartConfig={{
+                color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+              }}
+              accessor="population"
+              backgroundColor="transparent"
+              paddingLeft="15"
+              center={[10, 10]}
+              absolute
+            />
+          </View>
 
-            {/* Pie Chart */}
-            <View className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-4">
-              <Text className="text-sm font-semibold text-gray-700 mb-3">
-                Spending by Category
-              </Text>
-              <PieChart
-                data={pieChartData}
-                width={screenWidth - 72}
-                height={200}
-                chartConfig={{
-                  color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-                }}
-                accessor="population"
-                backgroundColor="transparent"
-                paddingLeft="15"
-                center={[10, 10]}
-                absolute
-              />
-            </View>
-
-            {/* Category Breakdown */}
-            <View className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-              <Text className="text-sm font-semibold text-gray-700 mb-3">
-                Top Categories
-              </Text>
-              {categorySpending.slice(0, 4).map((cat, index) => (
-                <View key={cat.name} className="flex-row items-center justify-between py-2 border-b border-gray-50 last:border-0">
-                  <View className="flex-row items-center flex-1">
-                    <View 
-                      className="w-3 h-3 rounded-full mr-3"
-                      style={{ backgroundColor: ["#3B82F6", "#10B981", "#F59E0B", "#EF4444"][index % 4] }}
-                    />
-                    <Text className="text-sm text-gray-700">{cat.name}</Text>
-                  </View>
-                  <View className="items-end">
-                    <Text className="text-sm font-semibold text-gray-900">
-                      {formatCurrency(cat.amount)}
-                    </Text>
-                    <Text className="text-xs text-gray-500">
-                      {cat.percentage.toFixed(1)}%
-                    </Text>
-                  </View>
+          {/* Category Breakdown */}
+          <View className="bg-white rounded-2xl p-4 mb-6 shadow-sm border border-gray-100">
+            <Text className="text-lg font-bold text-gray-800 mb-4 tracking-tight">
+              Top Categories
+            </Text>
+            {categorySpending.slice(0, 4).map((cat, index) => (
+              <View key={cat.name} className="flex-row items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                <View className="flex-row items-center flex-1">
+                  <View
+                    className="w-3 h-3 rounded-full mr-3"
+                    style={{ backgroundColor: ["#3B82F6", "#10B981", "#F59E0B", "#EF4444"][index % 4] }}
+                  />
+                  <Text className="text-sm text-gray-700">{cat.name}</Text>
                 </View>
-              ))}
-            </View>
+                <View className="items-end">
+                  <Text className="text-sm font-semibold text-gray-900">
+                    {formatCurrency(cat.amount)}
+                  </Text>
+                  <Text className="text-xs text-gray-500">
+                    {cat.percentage.toFixed(1)}%
+                  </Text>
+                </View>
+              </View>
+            ))}
           </View>
 
           {/* Recent Transactions */}
@@ -545,6 +637,7 @@ export default function HomeScreen() {
         onClose={() => setModalVisible(false)}
         onSave={handleSaveTransaction}
         initialType={modalType}
+        categories={categories}
       />
     </SafeAreaView>
   );

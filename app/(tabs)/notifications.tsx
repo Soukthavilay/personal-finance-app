@@ -2,6 +2,7 @@ import { Bell, Clock, TrendingUp, AlertTriangle, Smartphone, Moon, Sun } from "l
 import { useRouter } from "expo-router";
 import React from "react";
 import {
+  Platform,
   ScrollView,
   Switch,
   Text,
@@ -12,6 +13,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import * as Notifications from "expo-notifications";
 
 import { notificationService } from "@/services";
 import { getApiErrorMessage } from "@/services/apiClient";
@@ -25,26 +27,115 @@ export default function NotificationsScreen() {
   
   // Notification preferences
   const [preferences, setPreferences] = React.useState({
-    enabled: true,
+    enabled: false,
     daily_time: "08:00",
     timezone: "Asia/Bangkok",
-    daily_reminder_enabled: true,
-    daily_summary_enabled: true,
-    budget_warning_enabled: true,
+    daily_reminder_enabled: false,
+    daily_summary_enabled: false,
+    budget_warning_enabled: false,
   });
+
+  const normalizePreferences = React.useCallback((prefs: any) => {
+    const toBool = (v: any) => v === true || v === 1 || v === "1";
+    return {
+      enabled: toBool(prefs.enabled),
+      daily_time: prefs.daily_time || "08:00",
+      timezone: prefs.timezone || "Asia/Bangkok",
+      daily_reminder_enabled: toBool(prefs.daily_reminder_enabled),
+      daily_summary_enabled: toBool(prefs.daily_summary_enabled),
+      budget_warning_enabled: toBool(prefs.budget_warning_enabled),
+    };
+  }, []);
+
+  const persistPreferences = React.useCallback(
+    async (next: typeof preferences) => {
+      await notificationService.updatePreferences(next);
+      setPreferences(next);
+    },
+    [],
+  );
+
+  const handleToggleEnabled = React.useCallback(
+    async (value: boolean) => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const next = { ...preferences, enabled: value };
+
+        if (value) {
+          const { status } = await Notifications.requestPermissionsAsync();
+          if (status !== "granted") {
+            Alert.alert(
+              "Permission Required",
+              "Please enable notifications in your device settings to receive budget warnings.",
+            );
+            next.enabled = false;
+            await persistPreferences(next);
+            return;
+          }
+
+          try {
+            const token = await Notifications.getExpoPushTokenAsync();
+            await notificationService.upsertDeviceToken({
+              token: token.data,
+              platform: Platform.OS as "ios" | "android",
+            });
+          } catch (tokenError) {
+            console.log("Failed to register device token:", tokenError);
+          }
+        }
+
+        await persistPreferences(next);
+      } catch (err) {
+        setError(getApiErrorMessage(err));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [persistPreferences, preferences],
+  );
+
+  const handleTogglePreference = React.useCallback(
+    async (partial: Partial<typeof preferences>) => {
+      try {
+        setLoading(true);
+        setError("");
+        const next = { ...preferences, ...partial };
+        await persistPreferences(next);
+      } catch (err) {
+        setError(getApiErrorMessage(err));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [persistPreferences, preferences],
+  );
 
   const loadPreferences = React.useCallback(async () => {
     try {
       setLoading(true);
       setError("");
-      const prefs = await notificationService.getPreferences();
+      
+      // Check current notification permissions
+      const { status } = await Notifications.getPermissionsAsync();
+      const prefsRaw = await notificationService.getPreferences();
+      const prefs = normalizePreferences(prefsRaw);
+      
+      // Update enabled state based on actual permissions
+      if (status !== 'granted' && prefs.enabled) {
+        // Permissions were revoked, update preferences
+        await notificationService.updatePreferences({ enabled: false });
+        prefs.enabled = false;
+      }
+      
       setPreferences(prefs);
     } catch (err) {
       setError(getApiErrorMessage(err));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [normalizePreferences]);
 
   React.useEffect(() => {
     loadPreferences();
@@ -54,7 +145,34 @@ export default function NotificationsScreen() {
     try {
       setLoading(true);
       setError("");
-      await notificationService.updatePreferences(preferences);
+      
+      let finalPreferences = { ...preferences };
+      
+      // If enabling notifications, request permissions first
+      if (preferences.enabled) {
+        const { status } = await Notifications.requestPermissionsAsync();
+        
+        if (status !== 'granted') {
+          Alert.alert("Permission Required", "Please enable notifications in your device settings to receive budget warnings.");
+          finalPreferences.enabled = false;
+          setPreferences(finalPreferences);
+          return;
+        }
+        
+        // Register device token
+        try {
+          const token = await Notifications.getExpoPushTokenAsync();
+          await notificationService.upsertDeviceToken({
+            token: token.data,
+            platform: Platform.OS as "ios" | "android"
+          });
+        } catch (tokenError) {
+          console.log('Failed to register device token:', tokenError);
+        }
+      }
+      
+      await notificationService.updatePreferences(finalPreferences);
+      setPreferences(finalPreferences);
       Alert.alert("Success", "Notification preferences updated successfully!");
     } catch (err) {
       setError(getApiErrorMessage(err));
@@ -87,13 +205,11 @@ export default function NotificationsScreen() {
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
       <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
-        {/* Header */}
         <View className="bg-white border-b border-gray-100 px-6 py-4">
           <Text className="text-2xl font-bold text-gray-900">Notifications</Text>
         </View>
 
         <View className="p-4">
-          {/* Master Toggle */}
           <View className="bg-white rounded-2xl border border-gray-100 p-4 mb-6">
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center">
@@ -105,7 +221,7 @@ export default function NotificationsScreen() {
               </View>
               <Switch
                 value={preferences.enabled}
-                onValueChange={(value) => setPreferences(prev => ({ ...prev, enabled: value }))}
+                onValueChange={handleToggleEnabled}
                 disabled={loading}
               />
             </View>
@@ -113,7 +229,6 @@ export default function NotificationsScreen() {
 
           {preferences.enabled && (
             <>
-              {/* Daily Reminder */}
               <View className="bg-white rounded-2xl border border-gray-100 p-4 mb-4">
                 <View className="flex-row items-center justify-between mb-3">
                   <View className="flex-row items-center">
@@ -125,7 +240,9 @@ export default function NotificationsScreen() {
                   </View>
                   <Switch
                     value={preferences.daily_reminder_enabled}
-                    onValueChange={(value) => setPreferences(prev => ({ ...prev, daily_reminder_enabled: value }))}
+                    onValueChange={(value) =>
+                      handleTogglePreference({ daily_reminder_enabled: value })
+                    }
                     disabled={loading}
                   />
                 </View>
@@ -144,7 +261,6 @@ export default function NotificationsScreen() {
                 )}
               </View>
 
-              {/* Daily Summary */}
               <View className="bg-white rounded-2xl border border-gray-100 p-4 mb-4">
                 <View className="flex-row items-center justify-between">
                   <View className="flex-row items-center">
@@ -156,13 +272,14 @@ export default function NotificationsScreen() {
                   </View>
                   <Switch
                     value={preferences.daily_summary_enabled}
-                    onValueChange={(value) => setPreferences(prev => ({ ...prev, daily_summary_enabled: value }))}
+                    onValueChange={(value) =>
+                      handleTogglePreference({ daily_summary_enabled: value })
+                    }
                     disabled={loading}
                   />
                 </View>
               </View>
 
-              {/* Budget Warning */}
               <View className="bg-white rounded-2xl border border-gray-100 p-4 mb-6">
                 <View className="flex-row items-center justify-between">
                   <View className="flex-row items-center">
@@ -174,13 +291,14 @@ export default function NotificationsScreen() {
                   </View>
                   <Switch
                     value={preferences.budget_warning_enabled}
-                    onValueChange={(value) => setPreferences(prev => ({ ...prev, budget_warning_enabled: value }))}
+                    onValueChange={(value) =>
+                      handleTogglePreference({ budget_warning_enabled: value })
+                    }
                     disabled={loading}
                   />
                 </View>
               </View>
 
-              {/* Timezone Display */}
               <View className="bg-white rounded-2xl border border-gray-100 p-4 mb-6">
                 <View className="flex-row items-center">
                   <Smartphone size={20} color="#6B7280" className="mr-3" />
@@ -191,7 +309,6 @@ export default function NotificationsScreen() {
                 </View>
               </View>
 
-              {/* Save Button */}
               <TouchableOpacity
                 onPress={handleUpdatePreferences}
                 disabled={loading}
@@ -205,7 +322,6 @@ export default function NotificationsScreen() {
             </>
           )}
 
-          {/* Info Section */}
           <View className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mt-6">
             <View className="flex-row items-start">
               <Bell size={20} color="#3B82F6" className="mr-3 mt-1" />
@@ -229,7 +345,6 @@ export default function NotificationsScreen() {
             </View>
           )}
 
-          {/* Time Picker */}
           {showTimePicker && (
             <DateTimePicker
               value={getTimeForPicker()}
