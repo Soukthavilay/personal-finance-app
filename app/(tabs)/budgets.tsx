@@ -18,6 +18,7 @@ import { authService, budgetService, categoryService, transactionService } from 
 import { getApiErrorMessage } from "@/services/apiClient";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { formatCurrency } from "@/utils/formatting";
+import { useDataSync, SyncEvent } from "@/contexts/DataSyncContext";
 
 type Budget = {
   id: number;
@@ -34,6 +35,7 @@ export default function BudgetsScreen() {
   const router = useRouter();
   const currency = useSettingsStore((s) => s.settings.currency);
   const screenWidth = Dimensions.get("window").width;
+  const { subscribe, transactionRefreshKey, budgetRefreshKey } = useDataSync();
   
   const [budgets, setBudgets] = React.useState<Budget[]>([]);
   const [categories, setCategories] = React.useState<any[]>([]);
@@ -105,6 +107,64 @@ export default function BudgetsScreen() {
   React.useEffect(() => {
     loadBudgets();
   }, [loadBudgets]);
+
+  // Refresh when transactions or budgets change
+  React.useEffect(() => {
+    const unsubscribeTransactionCreated = subscribe(
+      SyncEvent.TRANSACTION_CREATED,
+      () => {
+        loadBudgets();
+      },
+    );
+
+    const unsubscribeTransactionUpdated = subscribe(
+      SyncEvent.TRANSACTION_UPDATED,
+      () => {
+        loadBudgets();
+      },
+    );
+
+    const unsubscribeTransactionDeleted = subscribe(
+      SyncEvent.TRANSACTION_DELETED,
+      () => {
+        loadBudgets();
+      },
+    );
+
+    const unsubscribeBudgetCreated = subscribe(
+      SyncEvent.BUDGET_CREATED,
+      () => {
+        loadBudgets();
+      },
+    );
+
+    const unsubscribeBudgetUpdated = subscribe(
+      SyncEvent.BUDGET_UPDATED,
+      () => {
+        loadBudgets();
+      },
+    );
+
+    const unsubscribeBudgetDeleted = subscribe(
+      SyncEvent.BUDGET_DELETED,
+      () => {
+        loadBudgets();
+      },
+    );
+
+    return () => {
+      unsubscribeTransactionCreated?.();
+      unsubscribeTransactionUpdated?.();
+      unsubscribeTransactionDeleted?.();
+      unsubscribeBudgetCreated?.();
+      unsubscribeBudgetUpdated?.();
+      unsubscribeBudgetDeleted?.();
+    };
+  }, [loadBudgets, subscribe]);
+
+  React.useEffect(() => {
+    loadBudgets();
+  }, [transactionRefreshKey, budgetRefreshKey, loadBudgets]);
 
   const handleAddBudget = async () => {
     if (!selectedCategory || !budgetAmount) {

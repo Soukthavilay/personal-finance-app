@@ -1,9 +1,8 @@
-import { ChevronRight, LogOut, User, Wallet, Bell, CreditCard, Settings, Globe, Shield, HelpCircle, Target, AlertCircle } from "lucide-react-native";
+import { ChevronRight, LogOut, User, Wallet, Bell, CreditCard, AlertCircle } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import React from "react";
 import {
   ScrollView,
-  Switch,
   Text,
   TouchableOpacity,
   View,
@@ -11,9 +10,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { notificationService } from "@/services";
-import { getApiErrorMessage } from "@/services/apiClient";
-import * as Notifications from "expo-notifications";
 import { authService } from "@/services";
 import { useSettingsStore } from "@/stores/settingsStore";
 
@@ -70,7 +66,6 @@ function SettingsSection({ title, children }: SettingsSectionProps) {
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const currency = useSettingsStore((s) => s.settings.currency);
   const resetSettings = useSettingsStore((s) => s.reset);
 
   const [user, setUser] = React.useState<AuthUser | null>(null);
@@ -124,29 +119,8 @@ export default function SettingsScreen() {
     router.push("/budgets" as any);
   };
 
-  const testNotification = async () => {
-    try {
-      // Request permissions
-      const { status } = await Notifications.requestPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert("Permission Required", "Please enable notifications in settings");
-        return;
-      }
-
-      // Send test notification
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: "🧪 Test Notification",
-          body: "This is a test to verify notifications are working!",
-          sound: 'default',
-        },
-        trigger: null, // Show immediately
-      });
-
-      Alert.alert("Success", "Test notification sent! Check your notification center.");
-    } catch (error) {
-      Alert.alert("Error", "Failed to send test notification");
-    }
+  const showComingSoon = () => {
+    Alert.alert("Thông báo", "Tính năng này đang được phát triển.");
   };
 
   return (
@@ -172,9 +146,9 @@ export default function SettingsScreen() {
                   icon={<Wallet size={20} color="#10B981" />}
                   title="Quản lý ví"
                   subtitle="Xem và quản lý các tài khoản"
-                  onPress={() => navigateTo("/wallets")}
+                  onPress={showComingSoon}
                 />
-                                <SettingsItem
+                <SettingsItem
                   icon={<LogOut size={20} color="#EF4444" />}
                   title="Đăng xuất"
                   onPress={handleLogout}
@@ -199,12 +173,6 @@ export default function SettingsScreen() {
               subtitle="Quản lý thông báo đẩy"
               onPress={() => router.push("/notifications" as any)}
             />
-            <SettingsItem
-              icon={<AlertCircle size={20} color="#8B5CF6" />}
-              title="Test Notification"
-              subtitle="Gửi thông báo kiểm tra"
-              onPress={testNotification}
-            />
           </SettingsSection>
 
           {/* Data Management Section */}
@@ -221,7 +189,7 @@ export default function SettingsScreen() {
               subtitle="Đặt và theo dõi ngân sách"
               onPress={navigateToBudgets}
             />
-                      </SettingsSection>
+          </SettingsSection>
           {/* App Info */}
           <View className="items-center py-6">
             <Text className="text-sm text-gray-500">Phiên bản 1.0.0</Text>
