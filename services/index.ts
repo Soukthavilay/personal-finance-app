@@ -3,6 +3,7 @@ export * as budgetService from "./budgetService";
 export * as categoryService from "./categoryService";
 export * as notificationService from "./notificationService";
 export * as reportService from "./reportService";
+export * as transferService from "./transferService";
 export * as transactionService from "./transactionService";
 export * as userService from "./userService";
 export * as walletService from "./walletService";

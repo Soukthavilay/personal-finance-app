@@ -10,7 +10,8 @@ import {
   TransactionModal,
   TransactionType,
 } from "@/components/TransactionModal";
-import { categoryService, transactionService } from "@/services";
+import { TransferModal } from "@/components/TransferModal";
+import { categoryService, transactionService, transferService } from "@/services";
 import { getApiErrorMessage } from "@/services/apiClient";
 import { useDataSync, SyncEvent } from "@/contexts/DataSyncContext";
 import { formatDateYYYYMMDD } from "@/utils/date";
@@ -30,6 +31,7 @@ export default function TransactionsScreen() {
   const [refreshing, setRefreshing] = React.useState(false);
   const [modalVisible, setModalVisible] = React.useState(false);
   const [modalType, setModalType] = React.useState<TransactionType>("expense");
+  const [transferModalVisible, setTransferModalVisible] = React.useState(false);
   const [categories, setCategories] = React.useState<
     categoryService.Category[]
   >([]);
@@ -141,9 +143,37 @@ export default function TransactionsScreen() {
     }
   };
 
+  const handleSaveTransfer = async (input: {
+    fromWalletId: number;
+    toWalletId: number;
+    amount: number;
+    date: Date;
+    description?: string;
+  }) => {
+    setError("");
+    try {
+      await transferService.createTransfer({
+        from_wallet_id: input.fromWalletId,
+        to_wallet_id: input.toWalletId,
+        amount: input.amount,
+        transfer_date: formatDateYYYYMMDD(input.date),
+        description: input.description || "",
+      });
+      setTransferModalVisible(false);
+      await refreshWallets();
+      await fetchData();
+    } catch (e) {
+      setError(getApiErrorMessage(e));
+    }
+  };
+
   const openModal = (type: TransactionType) => {
     setModalType(type);
     setModalVisible(true);
+  };
+
+  const openTransferModal = () => {
+    setTransferModalVisible(true);
   };
 
   const handleSaveTransaction = async (
@@ -230,6 +260,17 @@ export default function TransactionsScreen() {
             </TouchableOpacity>
           </View>
 
+          <View className="mt-3">
+            <TouchableOpacity
+              onPress={openTransferModal}
+              className="w-full bg-blue-600 rounded-xl px-4 py-3"
+            >
+              <Text className="text-white text-center font-semibold">
+                Chuyển tiền
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           {loading && (
             <Text className="text-sm text-gray-500 mt-3">Đang tải...</Text>
           )}
@@ -258,6 +299,19 @@ export default function TransactionsScreen() {
         onSave={handleSaveTransaction}
         initialType={modalType}
         categories={categories}
+        currency={displayCurrency}
+      />
+
+      <TransferModal
+        visible={transferModalVisible}
+        onClose={() => setTransferModalVisible(false)}
+        onSave={handleSaveTransfer}
+        wallets={wallets.map((w) => ({
+          id: w.id,
+          name: w.name,
+          currency: w.currency,
+        }))}
+        defaultFromWalletId={selectedWalletId ?? defaultWalletId ?? null}
         currency={displayCurrency}
       />
     </SafeAreaView>
