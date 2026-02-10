@@ -49,7 +49,9 @@ export default function BudgetsScreen() {
   // Form states
   const [selectedCategory, setSelectedCategory] = React.useState("");
   const [budgetAmount, setBudgetAmount] = React.useState("");
-  const [budgetPeriod, setBudgetPeriod] = React.useState("2026-01");
+  const [budgetPeriod, setBudgetPeriod] = React.useState(
+    new Date().toISOString().slice(0, 7),
+  );
 
   const displayCurrency = React.useMemo(() => {
     if (!selectedWalletId) return currency;

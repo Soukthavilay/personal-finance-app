@@ -1,5 +1,5 @@
-import { CreditCard, DollarSign, TrendingUp, Wallet, TrendingDown, PieChart as PieChartIcon, BarChart3, Target, PiggyBank } from "lucide-react-native";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { CreditCard, DollarSign, TrendingUp, Wallet, Target, PiggyBank } from "lucide-react-native";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Dimensions,
@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { LineChart, PieChart } from "react-native-chart-kit";
+import { PieChart } from "react-native-chart-kit";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import * as Haptics from "expo-haptics";
@@ -63,6 +63,8 @@ export default function HomeScreen() {
   const [budgetRemaining, setBudgetRemaining] = useState<number>(0);
   const [budgetUsedPercentage, setBudgetUsedPercentage] = useState<number>(0);
   const [lastBudgetWarning, setLastBudgetWarning] = useState<string>("");
+  const lastBudgetWarningRef = useRef<string>("");
+  const budgetWarningInFlightRef = useRef<Set<string>>(new Set());
   const [refreshKey, setRefreshKey] = useState(0);
   const [categories, setCategories] = useState<categoryService.Category[]>([]);
   const [categoryStats, setCategoryStats] = useState<
@@ -135,9 +137,18 @@ export default function HomeScreen() {
       const warningKey = `${today}-${level}`;
 
       // Avoid duplicate warnings on same day (per warning level)
-      if (lastBudgetWarning === warningKey) {
+      // Use refs to avoid race conditions when loadDashboard triggers multiple times quickly.
+      if (lastBudgetWarningRef.current === warningKey) {
         return;
       }
+
+      if (budgetWarningInFlightRef.current.has(warningKey)) {
+        return;
+      }
+
+      budgetWarningInFlightRef.current.add(warningKey);
+      lastBudgetWarningRef.current = warningKey;
+      setLastBudgetWarning(warningKey);
 
       let message = "";
       let title = "";
@@ -154,20 +165,21 @@ export default function HomeScreen() {
         message = `You've used ${usedPercentage.toFixed(0)}% of your budget. ${formatCurrency(remaining, displayCurrency)} remaining.`;
       }
 
-      // Show push notification
-      await sendBudgetNotification(title, message);
-      
-      // Also show alert for immediate feedback
-      Alert.alert(title, message, [{ text: "OK" }]);
-      
-      // Store warning to prevent duplicates
-      setLastBudgetWarning(warningKey);
+      try {
+        // Show push notification
+        await sendBudgetNotification(title, message);
+
+        // Also show alert for immediate feedback
+        Alert.alert(title, message, [{ text: "OK" }]);
+      } finally {
+        budgetWarningInFlightRef.current.delete(warningKey);
+      }
       
     } catch (error) {
       // Silent fail for notifications
       console.log('Notification check failed:', error);
     }
-  }, [displayCurrency, lastBudgetWarning]);
+  }, [displayCurrency]);
 
   const sendBudgetNotification = async (title: string, body: string) => {
     try {
